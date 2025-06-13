@@ -1,6 +1,8 @@
-package vanitea
+package linearcontainer
 
 import (
+	"math"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -35,6 +37,19 @@ type ChildComponent struct {
 	BorderStyle lipgloss.Style
 	// The style of the border to render around the component
 	FocusedBorderStyle lipgloss.Style
+}
+
+func ChildComponentFromModel(model tea.Model) ChildComponent {
+	return ChildComponent{
+		Model:              model,
+		Priority:           1,
+		MaximumWidth:       math.MaxInt,
+		MaximumHeight:      math.MaxInt,
+		MinimumWidth:       2,
+		MinimumHeight:      2,
+		BorderStyle:        BORDER_STYLE,
+		FocusedBorderStyle: FOCUSED_BORDER_STYLE,
+	}
 }
 
 func (m *ChildComponent) getMaximumSize(lc LinearContainerModel) int {

@@ -3,10 +3,9 @@ package vanitea
 import (
 	"strings"
 
+	utils "github.com/argotnaut/vanitea/utils"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-
-	utils "vanitea/utils"
 )
 
 type Dimensions struct {

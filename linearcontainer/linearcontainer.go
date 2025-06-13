@@ -1,4 +1,4 @@
-package vanitea
+package linearcontainer
 
 import (
 	"cmp"
@@ -25,6 +25,13 @@ type LinearContainerModel struct {
 	focusIndex      int
 	ChildComponents []ChildComponent
 	direction       int
+}
+
+func NewLinearContainerFromComponents(components []ChildComponent) *LinearContainerModel {
+	newLinearContainer := LinearContainerModel{
+		ChildComponents: components,
+	}
+	return &newLinearContainer
 }
 
 func (m LinearContainerModel) Init() tea.Cmd {

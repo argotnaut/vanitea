@@ -1,4 +1,4 @@
-package vanitea
+package utils
 
 import (
 	tsize "github.com/kopoli/go-terminal-size"
