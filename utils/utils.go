@@ -18,7 +18,10 @@ it if it's out of the given bounds
 */
 func WrapInt(value int, min int, max int) int {
 	diff := max - min
-	return min + ((value - min) % diff)
+	if value < min {
+		value += diff * ((min-value)/diff + 1)
+	}
+	return min + (value-min)%diff
 }
 
 func GetTerminalSize() (width int, height int, err error) {

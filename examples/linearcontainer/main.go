@@ -20,11 +20,17 @@ func main() {
 	styleLavender := lipgloss.NewStyle().Background(lipgloss.Color("#785ef0"))
 	styleYellow := lipgloss.NewStyle().Background(lipgloss.Color("#ffb000"))
 
-	linearContainer := lc.LinearContainerModel{
-		ChildComponents: []lc.ChildComponent{
+	linearContainer := lc.NewLinearContainerFromComponents(
+		[]*lc.ChildComponent{
+			lc.ChildComponentFromModel(
+				placeholder.GetPlaceholder(&styleMagenta, nil, nil, nil),
+			),
+			lc.ChildComponentFromModel(
+				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
+			),
 			lc.ChildComponentFromModel(
 				lc.NewLinearContainerFromComponents(
-					[]lc.ChildComponent{
+					[]*lc.ChildComponent{
 						lc.ChildComponentFromModel(
 							placeholder.GetPlaceholder(&styleBlue, nil, nil, nil),
 						),
@@ -33,18 +39,12 @@ func main() {
 						),
 					},
 				).SetDirection(VERTICAL),
-			),
-			lc.ChildComponentFromModel(
-				placeholder.GetPlaceholder(&styleMagenta, nil, nil, nil),
-			),
-			lc.ChildComponentFromModel(
-				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
-			),
+			).SetFocusable(false),
 			lc.ChildComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
 			),
 		},
-	}
+	)
 
 	linearContainer.SetDirection(orientation)
 	_, err := tea.NewProgram(linearContainer, tea.WithAltScreen()).Run()
