@@ -63,7 +63,7 @@ func (m *linearContainerModel) GetChild(idx int) *ChildComponent {
 	return m.ChildComponents[idx]
 }
 
-func (m *linearContainerModel) GetSize(msg tea.WindowSizeMsg) int {
+func (m *linearContainerModel) GetSizeAlongMainAxis(msg tea.WindowSizeMsg) int {
 	if m.IsHorizontal() {
 		return msg.Width
 	} else {
@@ -72,10 +72,11 @@ func (m *linearContainerModel) GetSize(msg tea.WindowSizeMsg) int {
 }
 
 func (m linearContainerModel) GetChildStyle(childIdx int) lipgloss.Style {
-	if m.ChildIsFocused(m.GetChild(childIdx)) {
-		return FOCUSED_BORDER_STYLE
+	child := m.GetChild(childIdx)
+	if m.ChildIsFocused(child) {
+		return child.GetFocusBorderStyle()
 	}
-	return BORDER_STYLE
+	return child.GetBorderStyle()
 }
 
 /*
@@ -187,9 +188,9 @@ func (m linearContainerModel) calculateRemainingSpace(
 	childComponentSizes []tea.WindowSizeMsg,
 	containerSize tea.WindowSizeMsg,
 ) int {
-	remainingSpace := m.GetSize(containerSize)
+	remainingSpace := m.GetSizeAlongMainAxis(containerSize)
 	for _, childSize := range childComponentSizes {
-		remainingSpace -= max(m.GetSize(childSize), 0)
+		remainingSpace -= max(m.GetSizeAlongMainAxis(childSize), 0)
 	}
 	return max(0, remainingSpace)
 }
@@ -198,23 +199,18 @@ func (m linearContainerModel) calculateRemainingSpace(
 Resizes the child components according to their dimensions and the dimensions of the
 linearContainerModel
 */
-func (m *linearContainerModel) ResizeChildComponents(containerSize tea.WindowSizeMsg) tea.Cmd {
+func (m *linearContainerModel) resizeChildComponents(containerSize tea.WindowSizeMsg) tea.Cmd {
 	// holds the sizes of every component that's getting resized (update this every time they change)
 	var sizes []tea.WindowSizeMsg
 	// holds the indices of the remaining components that can still grow
 	var growableComponents []int
-
-	containerSize = tea.WindowSizeMsg{
-		Width:  containerSize.Width,
-		Height: containerSize.Height,
-	}
 
 	// 1. set every component to its minimum width
 	for i := range len(m.ChildComponents) {
 		newSize := m.getNewChildSize(i, containerSize, m.GetChild(i).getMinimumSize(*m))
 		sizes = append(sizes, newSize)
 		// if the component can still grow
-		if m.GetSize(newSize) < m.GetChild(i).getMaximumSize(*m) {
+		if m.GetSizeAlongMainAxis(newSize) < m.GetChild(i).getMaximumSize(*m) {
 			// add it to the list of growable components
 			growableComponents = append(growableComponents, i)
 		}
@@ -241,11 +237,11 @@ func (m *linearContainerModel) ResizeChildComponents(containerSize tea.WindowSiz
 			newSize := m.getNewChildSize(
 				childIdx,
 				containerSize,
-				m.GetSize(sizes[childIdx])+evenShare,
+				m.GetSizeAlongMainAxis(sizes[childIdx])+evenShare,
 			)
 			sizes[childIdx] = newSize
 			// if the component hit its maximum size
-			if m.GetSize(newSize) >= m.GetChild(childIdx).getMaximumSize(*m) {
+			if m.GetSizeAlongMainAxis(newSize) >= m.GetChild(childIdx).getMaximumSize(*m) {
 				// remove it from the list of growable components
 				growableComponents = slices.Delete(
 					growableComponents,
@@ -266,7 +262,7 @@ func (m *linearContainerModel) ResizeChildComponents(containerSize tea.WindowSiz
 		newSize := m.getNewChildSize(
 			childIdx,
 			containerSize,
-			m.GetSize(sizes[childIdx])+remainingSpace,
+			m.GetSizeAlongMainAxis(sizes[childIdx])+remainingSpace,
 		)
 		sizes[childIdx] = newSize
 	}
@@ -374,7 +370,7 @@ func (m linearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Width:  msg.Width - frameSize.Width,
 			Height: msg.Height - frameSize.Height,
 		}
-		return m, (&m).ResizeChildComponents(frameAdjustedMessage)
+		return m, (&m).resizeChildComponents(frameAdjustedMessage)
 	}
 	for _, child := range m.ChildComponents {
 		model, cmd := child.GetModel().Update(msg)
@@ -382,7 +378,6 @@ func (m linearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 	return m, tea.Batch(cmds...)
-
 }
 
 func (m linearContainerModel) View() (s string) {

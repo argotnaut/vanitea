@@ -15,6 +15,24 @@ var BORDER_STYLE = lipgloss.NewStyle().BorderStyle(
 	lipgloss.RoundedBorder(),
 ).BorderForeground(lipgloss.Color("#AAAAAA"))
 
+var NO_BORDER_STYLE = lipgloss.NewStyle().BorderStyle(
+	lipgloss.Border{
+		Top:          "",
+		Bottom:       "",
+		Left:         "",
+		Right:        "",
+		TopLeft:      "",
+		TopRight:     "",
+		BottomLeft:   "",
+		BottomRight:  "",
+		MiddleLeft:   "",
+		MiddleRight:  "",
+		Middle:       "",
+		MiddleTop:    "",
+		MiddleBottom: "",
+	},
+).Background(lipgloss.Color("#99FF99"))
+
 type ChildComponent struct {
 	// The bubbletea model for the TUI component
 	model tea.Model
