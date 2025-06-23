@@ -31,7 +31,7 @@ var NO_BORDER_STYLE = lipgloss.NewStyle().BorderStyle(
 		MiddleTop:    "",
 		MiddleBottom: "",
 	},
-).Background(lipgloss.Color("#99FF99"))
+)
 
 type ChildComponent struct {
 	// The bubbletea model for the TUI component

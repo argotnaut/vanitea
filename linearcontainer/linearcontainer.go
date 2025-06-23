@@ -51,19 +51,19 @@ func (m *linearContainerModel) SetDirection(direction int) *linearContainerModel
 	return m
 }
 
-func (m *linearContainerModel) IsVertical() bool {
+func (m linearContainerModel) IsVertical() bool {
 	return m.direction == VERTICAL
 }
 
-func (m *linearContainerModel) IsHorizontal() bool {
+func (m linearContainerModel) IsHorizontal() bool {
 	return m.direction == HORIZONTAL
 }
 
-func (m *linearContainerModel) GetChild(idx int) *ChildComponent {
+func (m linearContainerModel) GetChild(idx int) *ChildComponent {
 	return m.ChildComponents[idx]
 }
 
-func (m *linearContainerModel) GetSizeAlongMainAxis(msg tea.WindowSizeMsg) int {
+func (m linearContainerModel) GetSizeAlongMainAxis(msg tea.WindowSizeMsg) int {
 	if m.IsHorizontal() {
 		return msg.Width
 	} else {
@@ -71,12 +71,18 @@ func (m *linearContainerModel) GetSizeAlongMainAxis(msg tea.WindowSizeMsg) int {
 	}
 }
 
-func (m linearContainerModel) GetChildStyle(childIdx int) lipgloss.Style {
-	child := m.GetChild(childIdx)
+func (m linearContainerModel) GetChildStyle(child *ChildComponent) lipgloss.Style {
+	if child == nil {
+		return NO_BORDER_STYLE
+	}
 	if m.ChildIsFocused(child) {
 		return child.GetFocusBorderStyle()
 	}
 	return child.GetBorderStyle()
+}
+
+func (m linearContainerModel) GetChildStyleByIndex(childIdx int) lipgloss.Style {
+	return m.GetChildStyle(m.GetChild(childIdx))
 }
 
 /*
@@ -162,6 +168,7 @@ func (m linearContainerModel) getNewChildSize(childIdx int, containerSize tea.Wi
 			child.GetMaximumWidth(),
 		)
 	} else {
+		// Use as much of the WindowSizeMsg's width as the ChildComponent's MaximumWidth will allow
 		newMsg.Width = utils.ClampInt(
 			containerSize.Width,
 			child.GetMinimumWidth(),
@@ -284,7 +291,7 @@ padding and border widths)
 */
 func (m linearContainerModel) getSumOfHorizontalFrameSizes() (output int) {
 	for i := range len(m.ChildComponents) {
-		output += m.GetChildStyle(i).GetHorizontalFrameSize()
+		output += m.GetChildStyleByIndex(i).GetHorizontalFrameSize()
 	}
 	return
 }
@@ -295,7 +302,7 @@ sizes ("frame" being the sum of: margins, padding and border widths)
 */
 func (m linearContainerModel) getMaxOfHorizontalFrameSizes() (output int) {
 	for i := range len(m.ChildComponents) {
-		output = max(output, m.GetChildStyle(i).GetHorizontalFrameSize())
+		output = max(output, m.GetChildStyleByIndex(i).GetHorizontalFrameSize())
 	}
 	return
 }
@@ -307,7 +314,7 @@ padding and border widths)
 */
 func (m linearContainerModel) getSumOfVerticalFrameSizes() (output int) {
 	for i := range len(m.ChildComponents) {
-		output += m.GetChildStyle(i).GetVerticalFrameSize()
+		output += m.GetChildStyleByIndex(i).GetVerticalFrameSize()
 	}
 	return
 }
@@ -318,7 +325,7 @@ sizes ("frame" being the sum of: margins, padding and border widths)
 */
 func (m linearContainerModel) getMaxOfVerticalFrameSizes() (output int) {
 	for i := range len(m.ChildComponents) {
-		output = max(output, m.GetChildStyle(i).GetVerticalFrameSize())
+		output = max(output, m.GetChildStyleByIndex(i).GetVerticalFrameSize())
 	}
 	return
 }
@@ -405,12 +412,12 @@ func (m linearContainerModel) View() (s string) {
 	// Join child component renderings together
 	if m.IsHorizontal() {
 		return (lipgloss.JoinHorizontal(
-			lipgloss.Top,
+			lipgloss.Center,
 			views...,
 		))
 	} else {
 		return (lipgloss.JoinVertical(
-			lipgloss.Top,
+			lipgloss.Center,
 			views...,
 		))
 	}

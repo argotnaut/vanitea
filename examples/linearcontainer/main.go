@@ -26,9 +26,6 @@ func main() {
 				placeholder.GetPlaceholder(&styleMagenta, nil, nil, nil),
 			),
 			lc.ChildComponentFromModel(
-				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
-			),
-			lc.ChildComponentFromModel(
 				lc.NewLinearContainerFromComponents(
 					[]*lc.ChildComponent{
 						lc.ChildComponentFromModel(
@@ -39,7 +36,10 @@ func main() {
 						),
 					},
 				).SetDirection(VERTICAL),
-			).SetFocusable(false),
+			).SetFocusable(false).SetBorderStyle(lc.NO_BORDER_STYLE),
+			lc.ChildComponentFromModel(
+				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
+			),
 			lc.ChildComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
 			),
