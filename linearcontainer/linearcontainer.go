@@ -366,10 +366,10 @@ func (m linearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.String() == FOCUS_FORWARD {
 			m.FocusForward(1)
-			return m, nil
+			return m, tea.WindowSize()
 		} else if msg.String() == FOCUS_BACKWARD {
 			m.FocusBackward(1)
-			return m, nil
+			return m, tea.WindowSize()
 		}
 	case tea.WindowSizeMsg:
 		frameSize := m.getFrameSizeAdjustment()

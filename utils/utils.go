@@ -18,6 +18,9 @@ it if it's out of the given bounds
 */
 func WrapInt(value int, min int, max int) int {
 	diff := max - min
+	if diff == 0 {
+		return min
+	}
 	if value < min {
 		value += diff * ((min-value)/diff + 1)
 	}
