@@ -55,22 +55,6 @@ func (lfh linearFocusHandler) SetFocusedComponent(child *ChildComponent) FocusHa
 }
 
 /*
-Returns a slice of the components' (including their child components, if they have any)
-that are capable of receiving focus
-*/
-func GetFocusableComponents(components []*ChildComponent) (output []*ChildComponent) {
-	for _, component := range components {
-		if component.IsFocusable() {
-			output = append(output, component)
-		}
-		if lc, isLC := component.GetModel().(Container); isLC {
-			output = append(output, GetFocusableComponents(lc.GetChildren())...)
-		}
-	}
-	return
-}
-
-/*
 Returns a FocusHandler whose focused child pointer has been updated according
 to this current focus index and the subject container's focusable children
 */

@@ -35,3 +35,19 @@ type FocusHandler interface {
 	*/
 	UpdateFocusedChild() FocusHandler
 }
+
+/*
+Returns a slice of the components' (including their child components, if they have any)
+that are capable of receiving focus
+*/
+func GetFocusableComponents(components []*ChildComponent) (output []*ChildComponent) {
+	for _, component := range components {
+		if component.IsFocusable() {
+			output = append(output, component)
+		}
+		if lc, isLC := component.GetModel().(Container); isLC {
+			output = append(output, GetFocusableComponents(lc.GetChildren())...)
+		}
+	}
+	return
+}
