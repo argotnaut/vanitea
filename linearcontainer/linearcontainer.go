@@ -14,36 +14,50 @@ const (
 	HORIZONTAL int = iota
 	VERTICAL
 	STACK
-
-	FOCUS_FORWARD  = "tab"
-	FOCUS_BACKWARD = "shift+tab"
 )
 
 type linearContainerModel struct {
-	focusIndex      int
-	focusedChild    *ChildComponent
-	ChildComponents []*ChildComponent
+	focusHandler    FocusHandler
+	childComponents []*ChildComponent
 	direction       int
 }
 
-func NewLinearContainer() linearContainerModel {
-	return linearContainerModel{}
+func NewLinearContainer() *linearContainerModel {
+	focusHandler := NewLinearFocusHandler()
+	lc := linearContainerModel{
+		focusHandler: focusHandler,
+	}
+	lc.SetFocusHandler(lc.focusHandler.SetSubjectContainer(lc))
+	return &lc
 }
 
 func NewLinearContainerFromComponents(components []*ChildComponent) *linearContainerModel {
-	newLinearContainer := linearContainerModel{
-		ChildComponents: components,
-	}
-	newLinearContainer.UpdateFocusedChild()
-	return &newLinearContainer
+	newLinearContainer := NewLinearContainer()
+	newLinearContainer.childComponents = components
+	newLinearContainer.SetFocusHandler(
+		newLinearContainer.GetFocusHandler().UpdateFocusedChild(),
+	)
+	return newLinearContainer
 }
 
 func (m linearContainerModel) Init() tea.Cmd {
 	var cmds []tea.Cmd
-	for _, child := range m.ChildComponents {
+	for _, child := range m.GetChildren() {
 		cmds = append(cmds, child.GetModel().Init())
 	}
 	return tea.Batch(cmds...)
+}
+
+func (m linearContainerModel) GetChildren() []*ChildComponent {
+	return m.childComponents
+}
+
+func (m *linearContainerModel) SetFocusHandler(handler FocusHandler) {
+	m.focusHandler = handler.SetSubjectContainer(m)
+}
+
+func (m linearContainerModel) GetFocusHandler() FocusHandler {
+	return m.focusHandler
 }
 
 func (m *linearContainerModel) SetDirection(direction int) *linearContainerModel {
@@ -60,7 +74,7 @@ func (m linearContainerModel) IsHorizontal() bool {
 }
 
 func (m linearContainerModel) GetChild(idx int) *ChildComponent {
-	return m.ChildComponents[idx]
+	return m.GetChildren()[idx]
 }
 
 func (m linearContainerModel) GetSizeAlongMainAxis(msg tea.WindowSizeMsg) int {
@@ -71,11 +85,14 @@ func (m linearContainerModel) GetSizeAlongMainAxis(msg tea.WindowSizeMsg) int {
 	}
 }
 
+/*
+Returns the current border style of the given child component
+*/
 func (m linearContainerModel) GetChildStyle(child *ChildComponent) lipgloss.Style {
 	if child == nil {
 		return NO_BORDER_STYLE
 	}
-	if m.ChildIsFocused(child) {
+	if m.focusHandler.GetFocusedComponent() == child {
 		return child.GetFocusBorderStyle()
 	}
 	return child.GetBorderStyle()
@@ -83,58 +100,6 @@ func (m linearContainerModel) GetChildStyle(child *ChildComponent) lipgloss.Styl
 
 func (m linearContainerModel) GetChildStyleByIndex(childIdx int) lipgloss.Style {
 	return m.GetChildStyle(m.GetChild(childIdx))
-}
-
-/*
-Returns a slice of the linearContainerModel's children that are capable
-of receiving focus
-*/
-func (m linearContainerModel) GetFocusableChildren() (output []*ChildComponent) {
-	for _, component := range m.ChildComponents {
-		if component.IsFocusable() {
-			output = append(output, component)
-		}
-		if lc, isLC := component.GetModel().(linearContainerModel); isLC {
-			output = append(output, lc.GetFocusableChildren()...)
-		}
-	}
-	return
-}
-
-func (m *linearContainerModel) SetFocusedChild(focusedChild *ChildComponent) *linearContainerModel {
-	m.focusedChild = focusedChild
-	return m
-}
-
-func (m *linearContainerModel) UpdateFocusedChild() *linearContainerModel {
-	focusables := m.GetFocusableChildren()
-	m.focusIndex = utils.WrapInt(m.focusIndex, 0, len(focusables))
-	for idx, child := range focusables {
-		if idx == m.focusIndex {
-			return m.SetFocusedChild(child)
-		}
-	}
-	return m
-}
-
-func (m *linearContainerModel) SetFocusIndex(focusIndex int) *linearContainerModel {
-	m.focusIndex = focusIndex
-	m.UpdateFocusedChild()
-	return m
-}
-
-func (m *linearContainerModel) FocusForward(steps int) *linearContainerModel {
-	m.SetFocusIndex(m.focusIndex + 1)
-	return m
-}
-
-func (m *linearContainerModel) FocusBackward(steps int) *linearContainerModel {
-	m.SetFocusIndex(m.focusIndex - 1)
-	return m
-}
-
-func (m linearContainerModel) ChildIsFocused(child *ChildComponent) bool {
-	return child == m.focusedChild
 }
 
 /*
@@ -213,7 +178,7 @@ func (m *linearContainerModel) resizeChildComponents(containerSize tea.WindowSiz
 	var growableComponents []int
 
 	// 1. set every component to its minimum width
-	for i := range len(m.ChildComponents) {
+	for i := range len(m.GetChildren()) {
 		newSize := m.getNewChildSize(i, containerSize, m.GetChild(i).getMinimumSize(*m))
 		sizes = append(sizes, newSize)
 		// if the component can still grow
@@ -290,7 +255,7 @@ child components ("frame" being the sum of: margins,
 padding and border widths)
 */
 func (m linearContainerModel) getSumOfHorizontalFrameSizes() (output int) {
-	for i := range len(m.ChildComponents) {
+	for i := range len(m.GetChildren()) {
 		output += m.GetChildStyleByIndex(i).GetHorizontalFrameSize()
 	}
 	return
@@ -301,7 +266,7 @@ Returns the maximum of all the child components' horizontal frame
 sizes ("frame" being the sum of: margins, padding and border widths)
 */
 func (m linearContainerModel) getMaxOfHorizontalFrameSizes() (output int) {
-	for i := range len(m.ChildComponents) {
+	for i := range len(m.GetChildren()) {
 		output = max(output, m.GetChildStyleByIndex(i).GetHorizontalFrameSize())
 	}
 	return
@@ -313,7 +278,7 @@ child components ("frame" being the sum of: margins,
 padding and border widths)
 */
 func (m linearContainerModel) getSumOfVerticalFrameSizes() (output int) {
-	for i := range len(m.ChildComponents) {
+	for i := range len(m.GetChildren()) {
 		output += m.GetChildStyleByIndex(i).GetVerticalFrameSize()
 	}
 	return
@@ -324,7 +289,7 @@ Returns the maximum of all the child components' vertical frame
 sizes ("frame" being the sum of: margins, padding and border widths)
 */
 func (m linearContainerModel) getMaxOfVerticalFrameSizes() (output int) {
-	for i := range len(m.ChildComponents) {
+	for i := range len(m.GetChildren()) {
 		output = max(output, m.GetChildStyleByIndex(i).GetVerticalFrameSize())
 	}
 	return
@@ -351,6 +316,12 @@ func (m linearContainerModel) getFrameSizeAdjustment() (output tea.WindowSizeMsg
 	return
 }
 
+/*
+Truncates the given TUI element to a width and height given by a tea.WindowSizeMsg
+
+sizeLimit: tea.WindowSizeMsg - The width and height to truncate the TUI element to
+input: string - The TUI element to truncate
+*/
 func limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
 	style := lipgloss.DefaultRenderer().NewStyle().
 		MaxWidth(sizeLimit.Width).
@@ -364,12 +335,8 @@ func (m linearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == FOCUS_FORWARD {
-			m.FocusForward(1)
-			return m, tea.WindowSize()
-		} else if msg.String() == FOCUS_BACKWARD {
-			m.FocusBackward(1)
-			return m, tea.WindowSize()
+		if m.focusHandler.IsFocusKey(msg.String()) {
+			m.SetFocusHandler(m.focusHandler.HandleFocusKey(msg.String()))
 		}
 	case tea.WindowSizeMsg:
 		frameSize := m.getFrameSizeAdjustment()
@@ -379,7 +346,7 @@ func (m linearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, (&m).resizeChildComponents(frameAdjustedMessage)
 	}
-	for _, child := range m.ChildComponents {
+	for _, child := range m.GetChildren() {
 		model, cmd := child.GetModel().Update(msg)
 		child.SetModel(model)
 		cmds = append(cmds, cmd)
@@ -390,10 +357,15 @@ func (m linearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m linearContainerModel) View() (s string) {
 	var views []string
 	// Collect all the individual renderings for all the child components
-	for _, child := range m.ChildComponents {
+	for _, child := range m.GetChildren() {
 		var model tea.Model
 		if lc, isLC := child.GetModel().(linearContainerModel); isLC {
-			lc.SetFocusedChild(m.focusedChild)
+			// set the child linearContainerModel's focused component to the parent linearContainerModel's focused component
+			lc.SetFocusHandler(
+				lc.focusHandler.SetFocusedComponent(
+					m.focusHandler.GetFocusedComponent(),
+				),
+			)
 			model = lc
 		} else {
 			model = child.GetModel()
@@ -402,7 +374,7 @@ func (m linearContainerModel) View() (s string) {
 			child.getSize(),
 			model.View(),
 		)
-		if m.ChildIsFocused(child) {
+		if m.focusHandler.GetFocusedComponent() == child {
 			view = child.GetFocusBorderStyle().Render(view)
 		} else {
 			view = child.GetBorderStyle().Render(view)
