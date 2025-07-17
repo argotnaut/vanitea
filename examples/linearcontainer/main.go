@@ -34,10 +34,10 @@ func main() {
 			).SetFocusable(false).SetBorderStyle(lc.NO_BORDER_STYLE),
 			lc.ChildComponentFromModel(
 				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
-			).SetBorderStyle(lc.NO_BORDER_STYLE),
+			),
 			lc.ChildComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
-			).SetBorderStyle(lc.NO_BORDER_STYLE),
+			),
 		},
 	)
 
