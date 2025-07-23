@@ -73,9 +73,21 @@ func ChildComponentFromModel(model tea.Model) *ChildComponent {
 	}
 }
 
+// func (m ChildComponent) GetModelPointer() *tea.Model {
+// 	return m.model
+// }
+
 func (m ChildComponent) GetModel() tea.Model {
+	if m.model == nil {
+		return nil
+	}
 	return m.model
 }
+
+// func (m *ChildComponent) SetModelPointer(model *tea.Model) *ChildComponent {
+// 	m.model = model
+// 	return m
+// }
 
 func (m *ChildComponent) SetModel(model tea.Model) *ChildComponent {
 	m.model = model
@@ -156,9 +168,9 @@ func (m *ChildComponent) SetFocusable(focusable bool) *ChildComponent {
 
 /*
 Returns the maximum width or height of the ChildComponent, depending on whether the
-given linearContainerModel is horizontal or vertical
+given LinearContainerModel is horizontal or vertical
 */
-func (m *ChildComponent) getMaximumSize(lc linearContainerModel) int {
+func (m *ChildComponent) getMaximumSize(lc LinearContainerModel) int {
 	if lc.IsHorizontal() {
 		return m.GetMaximumWidth()
 	} else {
@@ -168,9 +180,9 @@ func (m *ChildComponent) getMaximumSize(lc linearContainerModel) int {
 
 /*
 Returns the minimum width or height of the ChildComponent, depending on whether the
-given linearContainerModel is horizontal or vertical
+given LinearContainerModel is horizontal or vertical
 */
-func (m *ChildComponent) getMinimumSize(lc linearContainerModel) int {
+func (m *ChildComponent) getMinimumSize(lc LinearContainerModel) int {
 	if lc.IsHorizontal() {
 		return m.GetMinimumWidth()
 	} else {
