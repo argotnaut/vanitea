@@ -57,6 +57,8 @@ type ChildComponent struct {
 	focusedBorderStyle lipgloss.Style
 	// Whether the component can receive focus
 	focusable bool
+	// Whether the component should be skipped when rendering
+	hidden bool
 }
 
 func ChildComponentFromModel(model tea.Model) *ChildComponent {
@@ -73,21 +75,12 @@ func ChildComponentFromModel(model tea.Model) *ChildComponent {
 	}
 }
 
-// func (m ChildComponent) GetModelPointer() *tea.Model {
-// 	return m.model
-// }
-
 func (m ChildComponent) GetModel() tea.Model {
 	if m.model == nil {
 		return nil
 	}
 	return m.model
 }
-
-// func (m *ChildComponent) SetModelPointer(model *tea.Model) *ChildComponent {
-// 	m.model = model
-// 	return m
-// }
 
 func (m *ChildComponent) SetModel(model tea.Model) *ChildComponent {
 	m.model = model
@@ -104,6 +97,9 @@ func (m *ChildComponent) SetPriority(priority int) *ChildComponent {
 }
 
 func (m ChildComponent) GetMaximumWidth() int {
+	if m.IsHidden() {
+		return 0
+	}
 	return m.maximumWidth
 }
 
@@ -113,6 +109,9 @@ func (m *ChildComponent) SetMaximumWidth(width int) *ChildComponent {
 }
 
 func (m ChildComponent) GetMaximumHeight() int {
+	if m.IsHidden() {
+		return 0
+	}
 	return m.maximumHeight
 }
 
@@ -122,6 +121,9 @@ func (m *ChildComponent) SetMaximumHeight(height int) *ChildComponent {
 }
 
 func (m ChildComponent) GetMinimumWidth() int {
+	if m.IsHidden() {
+		return 0
+	}
 	return m.minimumWidth
 }
 
@@ -158,11 +160,28 @@ func (m *ChildComponent) SetFocusBorderStyle(style lipgloss.Style) *ChildCompone
 }
 
 func (m ChildComponent) IsFocusable() bool {
+	if m.IsHidden() {
+		return false
+	}
 	return m.focusable
 }
 
 func (m *ChildComponent) SetFocusable(focusable bool) *ChildComponent {
 	m.focusable = focusable
+	return m
+}
+
+func (m ChildComponent) IsHidden() bool {
+	return m.hidden
+}
+
+func (m *ChildComponent) SetHidden(hidden bool) *ChildComponent {
+	m.hidden = hidden
+	return m
+}
+
+func (m *ChildComponent) ToggleHidden() *ChildComponent {
+	m.hidden = !m.hidden
 	return m
 }
 

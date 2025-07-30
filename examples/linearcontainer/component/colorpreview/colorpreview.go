@@ -23,29 +23,53 @@ func (cpm ColorPreviewModel) GetColorList() colorList {
 }
 
 func (cpm ColorPreviewModel) GetColorPlaceholder() placeholder.PlaceholderModel {
-	return cpm.colorList.GetModel().(placeholder.PlaceholderModel)
+	return cpm.colorPlaceholder.GetModel().(placeholder.PlaceholderModel)
 }
 
 func GetColorPreviewModel() (output ColorPreviewModel) {
 	colors := []list.Item{
-		colorItem{title: "dark cyan", desc: "#008B8B"},
-		colorItem{title: "acid green", desc: "#B0BF1A"},
-		colorItem{title: "cordovan", desc: "#893F45"},
-		colorItem{title: "cerise", desc: "#DE3163"},
-		colorItem{title: "celadon", desc: "#ACE1AF"},
-		colorItem{title: "antique bronze", desc: "#665D1E"},
+		colorItem{title: "Dark cyan", desc: "#008B8B"},
+		colorItem{title: "Acid green", desc: "#B0BF1A"},
+		colorItem{title: "Cordovan", desc: "#893F45"},
+		colorItem{title: "Cerise", desc: "#DE3163"},
+		colorItem{title: "Antique bronze", desc: "#665D1E"},
+		colorItem{title: "Cambridge blue", desc: "#A3C1AD"},
+		colorItem{title: "Cameo pink", desc: "#EFBBCC"},
+		colorItem{title: "Blue bell", desc: "#A2A2D0"},
+		colorItem{title: "Catawba", desc: "#703642"},
+		colorItem{title: "Charcoal", desc: "#36454F"},
+		colorItem{title: "Chili red", desc: "#E23D28"},
+		colorItem{title: "Dark olive green", desc: "#556B2F"},
+		colorItem{title: "Dark sea green", desc: "#8FBC8F"},
+		colorItem{title: "Deep champagne", desc: "#FAD6A5"},
+		colorItem{title: "Ecru", desc: "#C2B280"},
+		colorItem{title: "Eggplant", desc: "#614051"},
+		colorItem{title: "English vermillion", desc: "#CC474B"},
+		colorItem{title: "Finn", desc: "#683068"},
+		colorItem{title: "French bistre", desc: "#856D4D"},
+		colorItem{title: "Fulvous", desc: "#E48400"},
+		colorItem{title: "Heliotrope gray", desc: "#AA98A9"},
+		colorItem{title: "Keppel", desc: "#3AB09E"},
+		colorItem{title: "Jonquil", desc: "#F4CA16"},
+		colorItem{title: "Light periwinkle", desc: "#C5CBE1"},
+		colorItem{title: "Mauve", desc: "#E0B0FF"},
+		colorItem{title: "Myrtle green", desc: "#317873"},
+		colorItem{title: "Nadeshiko pink", desc: "#F6ADC6"},
+		colorItem{title: "Nyanza", desc: "#E9FFDB"},
+		colorItem{title: "Powder blue", desc: "#B0E0E6"},
+		colorItem{title: "Razzmatazz", desc: "#E3256B"},
 	}
 	colorList := colorList{list: list.New(colors, list.NewDefaultDelegate(), 0, 0)}
 	colorList.list.Title = "Preview color"
 	output.colorList = lc.ChildComponentFromModel(
 		colorList,
-	).SetMaximumWidth(50)
+	).SetMaximumWidth(25) //.SetBorderStyle(lc.NO_BORDER_STYLE).SetFocusBorderStyle(lc.NO_BORDER_STYLE)
 
 	initialColor := lipgloss.NewStyle().Background(lipgloss.Color("#648fff"))
 	colorPlaceholder := placeholder.GetPlaceholder(&initialColor, nil, nil, nil)
 	output.colorPlaceholder = lc.ChildComponentFromModel(
 		colorPlaceholder,
-	)
+	) //.SetBorderStyle(lc.NO_BORDER_STYLE).SetFocusBorderStyle(lc.NO_BORDER_STYLE)
 
 	container := lc.NewLinearContainerFromComponents(
 		[]*lc.ChildComponent{
@@ -54,9 +78,7 @@ func GetColorPreviewModel() (output ColorPreviewModel) {
 		},
 	)
 	output.container = container
-
-	fmt.Fprintf(os.Stderr, "Initial address of placeholder: %p\n", output.container.GetChild(1))
-
+	fmt.Fprintf(os.Stderr, "colorList: %p, colorpreview: %p\n", output.colorList, output.colorPlaceholder)
 	return
 }
 
@@ -72,6 +94,12 @@ func (m ColorPreviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "q":
 			return m, tea.Quit
+		case "h":
+			fullSize := m.container.GetFullContainerSize()
+			m.colorList.ToggleHidden()
+			fmt.Fprintf(os.Stderr, "Preview:update fullsize: w: %d h: %d\n", fullSize.Width, fullSize.Height)
+			m.container.ResizeChildComponents(fullSize)
+			return m, nil
 		}
 	}
 	var cmds []tea.Cmd
@@ -83,7 +111,9 @@ func (m ColorPreviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// change the placeholder's color if the selected color has changed
 	if m.GetColorList().list.SelectedItem().FilterValue() != m.currentColor {
 		m.currentColor = m.GetColorList().list.SelectedItem().FilterValue()
-		m.colorPlaceholder.SetModel(m.colorPlaceholder.GetModel().(placeholder.PlaceholderModel).SetColor(lipgloss.Color(m.currentColor)))
+		m.colorPlaceholder.SetModel(
+			m.GetColorPlaceholder().SetColor(lipgloss.Color(m.currentColor)),
+		)
 	}
 
 	return m, tea.Batch(cmds...)
