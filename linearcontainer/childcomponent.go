@@ -212,7 +212,7 @@ func (m *ChildComponent) getMinimumSize(lc LinearContainerModel) int {
 /*
 Sets the ChildComponent's width and height to those of the given tea.WindowSizeMsg
 */
-func (m *ChildComponent) setSize(size tea.WindowSizeMsg) {
+func (m *ChildComponent) SetSize(size tea.WindowSizeMsg) {
 	m.height = size.Height
 	m.width = size.Width
 }
@@ -230,13 +230,13 @@ func (m ChildComponent) getSize() tea.WindowSizeMsg {
 /*
 This function calls ChildComponent.Model.Update function and returns
 the result. If the given message is a tea.WindowSizeMsg, it will
-call the ChildComponent's setSize function to record the change int
+call the ChildComponent's SetSize function to record the change int
 the model's size
 */
 func (m *ChildComponent) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch message := message.(type) {
 	case tea.WindowSizeMsg:
-		m.setSize(message)
+		m.SetSize(message)
 	}
 	return m.GetModel().Update(message)
 }

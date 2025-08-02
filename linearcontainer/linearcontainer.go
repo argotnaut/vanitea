@@ -293,7 +293,7 @@ func resizeChildModelForStyle(child *ChildComponent, size tea.WindowSizeMsg, m L
 		Width:  size.Width - m.GetChildStyle(child).GetHorizontalFrameSize(),
 		Height: size.Height - m.GetChildStyle(child).GetVerticalFrameSize(),
 	})
-	child.setSize(size)
+	child.SetSize(size)
 	child.SetModel(model)
 	return cmd
 }
