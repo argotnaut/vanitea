@@ -16,26 +16,26 @@ func main() {
 	styleYellow := lipgloss.NewStyle().Background(lipgloss.Color("#ffb000"))
 
 	linearContainer := lc.NewLinearContainerFromComponents(
-		[]*lc.ChildComponent{
-			lc.ChildComponentFromModel(
+		[]*lc.Component{
+			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleMagenta, nil, nil, nil),
 			),
-			lc.ChildComponentFromModel(
+			lc.ComponentFromModel(
 				lc.NewLinearContainerFromComponents(
-					[]*lc.ChildComponent{
-						lc.ChildComponentFromModel(
+					[]*lc.Component{
+						lc.ComponentFromModel(
 							placeholder.GetPlaceholder(&styleBlue, nil, nil, nil),
 						),
-						lc.ChildComponentFromModel(
+						lc.ComponentFromModel(
 							placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
 						),
 					},
 				).SetDirection(lc.VERTICAL),
 			).SetFocusable(false).SetBorderStyle(lc.NO_BORDER_STYLE),
-			lc.ChildComponentFromModel(
+			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
 			).SetBorderStyle(lc.NO_BORDER_STYLE),
-			lc.ChildComponentFromModel(
+			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
 			).SetBorderStyle(lc.NO_BORDER_STYLE),
 		},

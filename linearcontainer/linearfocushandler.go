@@ -12,17 +12,17 @@ const (
 )
 
 /*
-Handles the transfer of focus from one of a container's child components to the
+Handles the transfer of focus from one of a container's component components to the
 next in a sequence determined by the container's layout hierarchy
 */
 type linearFocusHandler struct {
 	// The index of the currently focused component in the list of focusable components
 	focusIndex int
 	// A pointer to the currently focused component
-	focusedChild *ChildComponent
+	focusedComponent *Component
 	// A slice of strings representing the key combinations that can be pressed to affect focus
 	focusKeys []string
-	// The container whose child components' focus is being handled
+	// The container whose component components' focus is being handled
 	subjectContainer Container
 }
 
@@ -45,32 +45,45 @@ func (lfh linearFocusHandler) IsFocusKey(key string) bool {
 	return slices.Contains(lfh.focusKeys, key)
 }
 
-func (lfh linearFocusHandler) GetFocusedComponent() *ChildComponent {
-	return lfh.focusedChild
+func (lfh linearFocusHandler) GetFocusedComponent() *Component {
+	return lfh.focusedComponent
 }
 
-func (lfh linearFocusHandler) SetFocusedComponent(child *ChildComponent) FocusHandler {
-	lfh.focusedChild = child
+func (lfh linearFocusHandler) SetFocusedComponent(component *Component) FocusHandler {
+	lfh.focusedComponent = component
 	return lfh
 }
 
 /*
-Returns a FocusHandler whose focused child pointer has been updated according
-to this current focus index and the subject container's focusable children
+Returns a FocusHandler whose focused component pointer has been updated according
+to this current focus index and the subject container's focusable component
 */
-func (lfh linearFocusHandler) UpdateFocusedChild() FocusHandler {
+func (lfh linearFocusHandler) UpdateFocusedComponent() FocusHandler {
 	if lfh.subjectContainer == nil {
 		return lfh
 	}
-	focusables := GetFocusableComponents(lfh.subjectContainer.GetChildren())
+	focusables := GetFocusableComponents(lfh.subjectContainer.GetComponents())
 	lfh.focusIndex = utils.WrapInt(lfh.focusIndex, 0, len(focusables))
-	lfh.focusedChild = focusables[lfh.focusIndex]
+	lfh.focusedComponent = focusables[lfh.focusIndex]
+	return lfh
+}
+
+/*
+Returns a FocusHandler whose focusIndex points to its current focusedComponent
+*/
+func (lfh linearFocusHandler) UpdateFocusIndex() FocusHandler {
+	for i, component := range lfh.subjectContainer.GetComponents() {
+		if component == lfh.focusedComponent {
+			lfh.focusIndex = i
+			break
+		}
+	}
 	return lfh
 }
 
 func (lfh linearFocusHandler) setFocusIndex(focusIndex int) FocusHandler {
 	lfh.focusIndex = focusIndex
-	return lfh.UpdateFocusedChild()
+	return lfh.UpdateFocusedComponent()
 }
 
 func (lfh linearFocusHandler) focusForward() FocusHandler {
@@ -81,8 +94,8 @@ func (lfh linearFocusHandler) focusBackward() FocusHandler {
 	return lfh.setFocusIndex(lfh.focusIndex - 1)
 }
 
-func (lfh linearFocusHandler) ChildIsFocused(child *ChildComponent) bool {
-	return child == lfh.focusedChild
+func (lfh linearFocusHandler) ComponentIsFocused(component *Component) bool {
+	return component == lfh.focusedComponent
 }
 
 func (lfh linearFocusHandler) HandleFocusKey(key string) FocusHandler {

@@ -1,9 +1,6 @@
 package colorpreview
 
 import (
-	"fmt"
-	"os"
-
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
 	"github.com/charmbracelet/bubbles/list"
@@ -12,8 +9,8 @@ import (
 )
 
 type ColorPreviewModel struct {
-	colorList        *lc.ChildComponent
-	colorPlaceholder *lc.ChildComponent
+	colorList        *lc.Component
+	colorPlaceholder *lc.Component
 	container        *lc.LinearContainerModel
 	currentColor     string
 }
@@ -61,24 +58,23 @@ func GetColorPreviewModel() (output ColorPreviewModel) {
 	}
 	colorList := colorList{list: list.New(colors, list.NewDefaultDelegate(), 0, 0)}
 	colorList.list.Title = "Preview color"
-	output.colorList = lc.ChildComponentFromModel(
+	output.colorList = lc.ComponentFromModel(
 		colorList,
-	).SetMaximumWidth(25) //.SetBorderStyle(lc.NO_BORDER_STYLE).SetFocusBorderStyle(lc.NO_BORDER_STYLE)
+	).SetMaximumWidth(25)
 
 	initialColor := lipgloss.NewStyle().Background(lipgloss.Color("#648fff"))
 	colorPlaceholder := placeholder.GetPlaceholder(&initialColor, nil, nil, nil)
-	output.colorPlaceholder = lc.ChildComponentFromModel(
+	output.colorPlaceholder = lc.ComponentFromModel(
 		colorPlaceholder,
-	) //.SetBorderStyle(lc.NO_BORDER_STYLE).SetFocusBorderStyle(lc.NO_BORDER_STYLE)
+	)
 
 	container := lc.NewLinearContainerFromComponents(
-		[]*lc.ChildComponent{
+		[]*lc.Component{
 			output.colorList,
 			output.colorPlaceholder,
 		},
 	)
 	output.container = container
-	fmt.Fprintf(os.Stderr, "colorList: %p, colorpreview: %p\n", output.colorList, output.colorPlaceholder)
 	return
 }
 
@@ -97,8 +93,7 @@ func (m ColorPreviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "h":
 			fullSize := m.container.GetFullContainerSize()
 			m.colorList.ToggleHidden()
-			fmt.Fprintf(os.Stderr, "Preview:update fullsize: w: %d h: %d\n", fullSize.Width, fullSize.Height)
-			m.container.ResizeChildComponents(fullSize)
+			m.container.ResizeComponents(fullSize)
 			return m, nil
 		}
 	}
