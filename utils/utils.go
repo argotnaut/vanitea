@@ -27,6 +27,18 @@ func WrapInt(value int, min int, max int) int {
 	return min + (value-min)%diff
 }
 
+/*
+Returns the integer absolute value of the given integer.
+(Integer alternative to math.Abs)
+*/
+func Abs(input int) int {
+	if input < 0 {
+		return -1 * input
+	} else {
+		return input
+	}
+}
+
 func GetTerminalSize() (width int, height int, err error) {
 	s, err := tsize.GetSize()
 	if err != nil {
