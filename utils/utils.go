@@ -1,13 +1,29 @@
 package utils
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	tsize "github.com/kopoli/go-terminal-size"
 )
 
-const WHITESPACE_CHAR = ' '
+const WHITESPACE_CHAR = " "
+
+type Position struct {
+	X float32
+	Y float32
+}
+
+var (
+	TOP_LEFT     = Position{X: 0, Y: 0}
+	TOP_RIGHT    = Position{X: 1, Y: 0}
+	BOTTOM_LEFT  = Position{X: 0, Y: 1}
+	BOTTOM_RIGHT = Position{X: 1, Y: 1}
+	CENTER       = Position{X: 0.5, Y: 0.5}
+)
 
 /*
 Returns the input int if it's between min and max, otherwise
@@ -67,7 +83,6 @@ input: int - The string to be placed
 */
 func PlaceHorizontallyScrolled(viewWidth int, hPos int, input string) string {
 	var output strings.Builder
-	const WHITESPACE_CHAR = " "
 
 	/*
 		the number of visible characters that have been written to the string so far.
@@ -105,7 +120,6 @@ func PlaceHorizontallyScrolled(viewWidth int, hPos int, input string) string {
 			parser,
 		)
 
-		// startOfVisibleStringReached := termVisibleWidth >= hPos
 		startOfVisibleStringReached := visibleWidthTraversed >= hPos
 		endOfVisibleStringReached := outputVisibleWidth >= viewWidth
 		if (startOfVisibleStringReached && !endOfVisibleStringReached) || termVisibleWidth == 0 {
@@ -153,6 +167,108 @@ func PlaceVerticallyAndHorizontallyScrolled(viewHeight int, viewWidth int, vPos 
 					inputLines[i],
 				),
 			)
+		}
+		output.WriteByte('\n')
+	}
+	return strings.Trim(output.String(), "\n")
+}
+
+/*
+Takes a top string and places it on top of (in front of, i.e. visually obstructing)
+a given bottom string. This function also takes a position argument, specifying which
+corner the two strings should be joined on (if position is 2, the top-left corner of the
+top string should be over the top-left corner of the bottom string)
+
+viewHeight: int - The height (in rows) of the view
+viewWidth: int - The width (in cells) of the view
+vPos: int - The vertical offset of the input string
+hPos: int - The horizontal offset of the input string
+input: int - The string to be placed
+*/
+func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int, viewHeight int, viewWidth int) string {
+	bottomHeight := lipgloss.Height(bottom)
+	topHeight := lipgloss.Height(top)
+	bottomWidth := lipgloss.Width(bottom)
+	topWidth := lipgloss.Width(top)
+
+	// the following initializations assume the anchor point (center of bottom string if origin is CENTER) is index 0
+	bottomStartY := int(-origin.Y * float32(bottomHeight))          // the index of the first line of bottom string
+	bottomEndY := int(origin.Y * float32(bottomHeight))             // the index of the last line of bottom string
+	topStartY := int(float32(vPos) - origin.Y*float32(topHeight))   // the index of the first line of the top string
+	topEndY := int(float32(vPos) + (1-origin.Y)*float32(topHeight)) // the index of the last line of the top string
+	maxIdxY := max(
+		bottomStartY,
+		bottomEndY,
+		topStartY,
+		topEndY,
+	) // the furthest down of the indices initialized above
+	minIdxY := min(
+		bottomStartY,
+		bottomEndY,
+		topStartY,
+		topEndY,
+	) // the furthest up of the idices initialized above
+	bottomStartX := int(-origin.X * float32(bottomWidth))          // the index of the first line of bottom string
+	bottomEndX := int(origin.X * float32(bottomWidth))             // the index of the last line of bottom string
+	topStartX := int(float32(vPos) - origin.X*float32(topWidth))   // the index of the first line of the top string
+	topEndX := int(float32(vPos) + (1-origin.X)*float32(topWidth)) // the index of the last line of the top string
+	maxIdxX := max(
+		bottomStartX,
+		bottomEndX,
+		topStartX,
+		topEndX,
+	) // the furthest down of the indices initialized above
+	minIdxX := min(
+		bottomStartX,
+		bottomEndX,
+		topStartX,
+		topEndX,
+	) // the furthest up of the idices initialized above
+
+	// Initialize variables used by the parser
+	parser := ansi.NewParser()
+	parser.SetParamsSize(32)
+	parser.SetDataSize(1024)
+	var bottomStringParserState byte
+	var topStringParserState byte
+
+	topLines := strings.Split(top, "\n")
+	bottomLines := strings.Split(bottom, "\n")
+
+	var output strings.Builder
+	for lineIdx := minIdxY; lineIdx < maxIdxY; lineIdx++ {
+		positionInTopLine := 0
+		positionInBottomLine := 0
+		for cellIdx := minIdxX; cellIdx < maxIdxX; {
+			// check if we are within the bounds of either input string (for use in the following conditional statements)
+			isInTopString := (lineIdx >= topStartY && lineIdx < topEndY) && (cellIdx >= topStartX && cellIdx < topEndX)
+			isInBottomString := (lineIdx >= bottomStartY && lineIdx < bottomEndY) && (cellIdx >= bottomStartX && cellIdx < bottomEndX)
+			// initialize values to the default term to write if we aren't within either of the input strings
+			term := WHITESPACE_CHAR
+			termVisibleWidth, bytesTraversed := lipgloss.Width(term), 1
+
+			if isInBottomString && positionInBottomLine < len(bottomLines[lineIdx-bottomStartY]) {
+				// parse the next term in the bottom string
+				term, termVisibleWidth, bytesTraversed, bottomStringParserState = ansi.DecodeSequenceWc(
+					bottomLines[lineIdx-bottomStartY][positionInBottomLine-bottomStartX:],
+					bottomStringParserState,
+					parser,
+				)
+				positionInBottomLine += bytesTraversed
+			}
+
+			if isInTopString && positionInTopLine < len(topLines[lineIdx-topStartY]) {
+				// parse the next term in the top string
+				term, termVisibleWidth, bytesTraversed, topStringParserState = ansi.DecodeSequenceWc(
+					topLines[lineIdx-topStartY][positionInTopLine-topStartX:],
+					topStringParserState,
+					parser,
+				)
+				positionInTopLine += bytesTraversed
+			}
+			output.WriteString(term)
+			cellIdx += termVisibleWidth
+			fmt.Fprintf(os.Stderr, "cellIdx: %d, termVisibleWidth: %d, positionInBottomLine: %d, positionInTopLine: %d\n", cellIdx, termVisibleWidth, positionInBottomLine, positionInTopLine)
 		}
 		output.WriteByte('\n')
 	}
