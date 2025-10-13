@@ -1,8 +1,7 @@
 package utils
 
 import (
-	"fmt"
-	"os"
+	"math"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -13,8 +12,8 @@ import (
 const WHITESPACE_CHAR = " "
 
 type Position struct {
-	X float32
-	Y float32
+	X float64
+	Y float64
 }
 
 var (
@@ -58,6 +57,14 @@ func Abs(input int) int {
 	} else {
 		return input
 	}
+}
+
+/*
+Returns the integer value of the given float64, rounded to the nearest
+whole number. (alternative to math.Abs)
+*/
+func Round(input float64) int {
+	return int(math.Round(input))
 }
 
 func GetTerminalSize() (width int, height int, err error) {
@@ -174,6 +181,94 @@ func PlaceVerticallyAndHorizontallyScrolled(viewHeight int, viewWidth int, vPos 
 }
 
 /*
+Takes an input string and parses out the next visible term and any styling
+sequences that may precede itm returning the styling as a string, the visible
+string, and the parser's new position in the string
+
+input: string - The string to be parsed
+startPos: int - The position in the string from which to start parsing bytes
+parser: *ansi.Parser - The parser object to use when parsing the string
+parserState: byte - The current state of the parser object's state machine
+*/
+func parseNextCellWithStyling(
+	input string,
+	startPos int,
+	parser *ansi.Parser,
+	parserState byte,
+) (string, string, int) {
+	var invisiblePrefix strings.Builder
+	var visibleTerm strings.Builder
+
+	var term string
+	totalBytesTraversed := 0
+	bytesTraversed := 0
+	termVisibleWidth := 0
+
+	idx := startPos
+	for idx < len(input) {
+		// parse the next term in the input string
+		term, termVisibleWidth, bytesTraversed, parserState = ansi.DecodeSequenceWc(
+			input[idx:],
+			parserState,
+			parser,
+		)
+		totalBytesTraversed += bytesTraversed
+
+		idx += bytesTraversed
+		if termVisibleWidth > 0 { // if current term is visible
+			visibleTerm.WriteString(term)
+			break
+		} else { // if current term is invisible
+			invisiblePrefix.WriteString(term)
+		}
+	}
+
+	return invisiblePrefix.String(), visibleTerm.String(), idx
+}
+
+/*
+Takes an input string and parses out any remaining ansi styling, returning
+the parsed ansi sequence(s) as a string and the new position in the string
+
+input: string - The string to be parsed
+startPos: int - The position in the string from which to start parsing bytes
+parser: *ansi.Parser - The parser object to use when parsing the string
+parserState: byte - The current state of the parser object's state machine
+*/
+func parseRemainingStyling(
+	input string,
+	startPos int,
+	parser *ansi.Parser,
+	parserState byte,
+) (string, int) {
+	var styling strings.Builder
+
+	var term string
+	totalBytesTraversed := 0
+	bytesTraversed := 0
+	termVisibleWidth := 0
+
+	idx := startPos
+	for idx < len(input) {
+		// parse the next term in the input string
+		term, termVisibleWidth, bytesTraversed, parserState = ansi.DecodeSequenceWc(
+			input[idx:],
+			parserState,
+			parser,
+		)
+		totalBytesTraversed += bytesTraversed
+
+		idx += bytesTraversed
+		if termVisibleWidth > 0 { // if current term is visible
+			break
+		}
+		styling.WriteString(term)
+	}
+
+	return styling.String(), idx
+}
+
+/*
 Takes a top string and places it on top of (in front of, i.e. visually obstructing)
 a given bottom string. This function also takes a position argument, specifying which
 corner the two strings should be joined on (if position is 2, the top-left corner of the
@@ -185,17 +280,17 @@ vPos: int - The vertical offset of the input string
 hPos: int - The horizontal offset of the input string
 input: int - The string to be placed
 */
-func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int, viewHeight int, viewWidth int) string {
+func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int) string {
 	bottomHeight := lipgloss.Height(bottom)
 	topHeight := lipgloss.Height(top)
 	bottomWidth := lipgloss.Width(bottom)
 	topWidth := lipgloss.Width(top)
 
 	// the following initializations assume the anchor point (center of bottom string if origin is CENTER) is index 0
-	bottomStartY := int(-origin.Y * float32(bottomHeight))          // the index of the first line of bottom string
-	bottomEndY := int(origin.Y * float32(bottomHeight))             // the index of the last line of bottom string
-	topStartY := int(float32(vPos) - origin.Y*float32(topHeight))   // the index of the first line of the top string
-	topEndY := int(float32(vPos) + (1-origin.Y)*float32(topHeight)) // the index of the last line of the top string
+	bottomStartY := int(-origin.Y * float64(bottomHeight))      // the index of the first line of bottom string
+	bottomEndY := Round((1 - origin.Y) * float64(bottomHeight)) // the index of the last line of bottom string
+	topStartY := vPos - int(origin.Y*float64(topHeight))        // the index of the first line of the top string
+	topEndY := vPos + Round((1-origin.Y)*float64(topHeight))    // the index of the last line of the top string
 	maxIdxY := max(
 		bottomStartY,
 		bottomEndY,
@@ -208,10 +303,10 @@ func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int
 		topStartY,
 		topEndY,
 	) // the furthest up of the idices initialized above
-	bottomStartX := int(-origin.X * float32(bottomWidth))          // the index of the first line of bottom string
-	bottomEndX := int(origin.X * float32(bottomWidth))             // the index of the last line of bottom string
-	topStartX := int(float32(vPos) - origin.X*float32(topWidth))   // the index of the first line of the top string
-	topEndX := int(float32(vPos) + (1-origin.X)*float32(topWidth)) // the index of the last line of the top string
+	bottomStartX := int(-origin.X * float64(bottomWidth))      // the index of the first line of bottom string
+	bottomEndX := Round((1 - origin.X) * float64(bottomWidth)) // the index of the last line of bottom string
+	topStartX := hPos - int(origin.X*float64(topWidth))        // the index of the first line of the top string
+	topEndX := hPos + Round((1-origin.X)*float64(topWidth))    // the index of the last line of the top string
 	maxIdxX := max(
 		bottomStartX,
 		bottomEndX,
@@ -239,36 +334,84 @@ func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int
 	for lineIdx := minIdxY; lineIdx < maxIdxY; lineIdx++ {
 		positionInTopLine := 0
 		positionInBottomLine := 0
-		for cellIdx := minIdxX; cellIdx < maxIdxX; {
-			// check if we are within the bounds of either input string (for use in the following conditional statements)
-			isInTopString := (lineIdx >= topStartY && lineIdx < topEndY) && (cellIdx >= topStartX && cellIdx < topEndX)
-			isInBottomString := (lineIdx >= bottomStartY && lineIdx < bottomEndY) && (cellIdx >= bottomStartX && cellIdx < bottomEndX)
-			// initialize values to the default term to write if we aren't within either of the input strings
-			term := WHITESPACE_CHAR
-			termVisibleWidth, bytesTraversed := lipgloss.Width(term), 1
+		var topStyling strings.Builder
+		var bottomStyling strings.Builder
 
-			if isInBottomString && positionInBottomLine < len(bottomLines[lineIdx-bottomStartY]) {
+		for cellIdx := minIdxX; cellIdx < maxIdxX; cellIdx++ {
+
+			// check if we are within the bounds of either input string (for use in the following conditional statements)
+			isInTopString := func(idx int) bool {
+				return (lineIdx >= topStartY && lineIdx < topEndY) && (idx >= topStartX && idx < topEndX)
+			}
+			isInBottomString := func(idx int) bool {
+				return (lineIdx >= bottomStartY && lineIdx < bottomEndY) && (idx >= bottomStartX && idx < bottomEndX)
+			}
+			// declare functions to get the top & bottom lines that correspond to the current lineIdx (defined as a function here to avoid index out of bounds errors)
+			thisLineFromTopString := func() string { return topLines[lineIdx-topStartY] }
+			thisLineFromBottomString := func() string { return bottomLines[lineIdx-bottomStartY] }
+
+			var prefix, visibleTerm string
+
+			// initialize term to the default string to write if we aren't within either of the input strings
+			term := WHITESPACE_CHAR
+
+			if isInBottomString(cellIdx) && positionInBottomLine < len(thisLineFromBottomString()) {
 				// parse the next term in the bottom string
-				term, termVisibleWidth, bytesTraversed, bottomStringParserState = ansi.DecodeSequenceWc(
-					bottomLines[lineIdx-bottomStartY][positionInBottomLine-bottomStartX:],
-					bottomStringParserState,
+				prefix, visibleTerm, positionInBottomLine = parseNextCellWithStyling(
+					thisLineFromBottomString(),
+					positionInBottomLine,
 					parser,
+					bottomStringParserState,
 				)
-				positionInBottomLine += bytesTraversed
+				term = prefix + visibleTerm
+				// if we just re-entered this input string from the other one, reapply this input string's accumulated styling
+				if !isInBottomString(cellIdx - 1) {
+					term = ansi.ResetStyle + bottomStyling.String() + term
+				}
+				// record styling for bottom string
+				bottomStyling.WriteString(prefix)
+				// if we are about to leave this input string
+				if nextCell := cellIdx + 1; !isInBottomString(nextCell) {
+					remainingStyling, newPos := parseRemainingStyling(
+						thisLineFromBottomString(),
+						positionInBottomLine,
+						parser,
+						bottomStringParserState,
+					)
+					positionInBottomLine = newPos
+					term += remainingStyling
+				}
 			}
 
-			if isInTopString && positionInTopLine < len(topLines[lineIdx-topStartY]) {
+			if isInTopString(cellIdx) && positionInTopLine < len(thisLineFromTopString()) {
 				// parse the next term in the top string
-				term, termVisibleWidth, bytesTraversed, topStringParserState = ansi.DecodeSequenceWc(
-					topLines[lineIdx-topStartY][positionInTopLine-topStartX:],
-					topStringParserState,
+				prefix, visibleTerm, positionInTopLine = parseNextCellWithStyling(
+					thisLineFromTopString(),
+					positionInTopLine,
 					parser,
+					topStringParserState,
 				)
-				positionInTopLine += bytesTraversed
+				term = prefix + visibleTerm
+				// if we just re-entered this input string from the other one, reapply this input string's accumulated styling
+				if !isInTopString(cellIdx - 1) {
+					term = ansi.ResetStyle + topStyling.String() + term
+				}
+				// record styling for top string
+				topStyling.WriteString(prefix)
+				// if we are about to leave this input string
+				if nextCell := cellIdx + 1; !isInTopString(nextCell) {
+					remainingStyling, newPos := parseRemainingStyling(
+						thisLineFromTopString(),
+						positionInTopLine,
+						parser,
+						topStringParserState,
+					)
+					positionInTopLine = newPos
+					term += remainingStyling
+				}
 			}
 			output.WriteString(term)
-			cellIdx += termVisibleWidth
-			fmt.Fprintf(os.Stderr, "cellIdx: %d, termVisibleWidth: %d, positionInBottomLine: %d, positionInTopLine: %d\n", cellIdx, termVisibleWidth, positionInBottomLine, positionInTopLine)
+
 		}
 		output.WriteByte('\n')
 	}
