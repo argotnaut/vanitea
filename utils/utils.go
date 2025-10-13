@@ -274,11 +274,10 @@ a given bottom string. This function also takes a position argument, specifying 
 corner the two strings should be joined on (if position is 2, the top-left corner of the
 top string should be over the top-left corner of the bottom string)
 
-viewHeight: int - The height (in rows) of the view
-viewWidth: int - The width (in cells) of the view
-vPos: int - The vertical offset of the input string
-hPos: int - The horizontal offset of the input string
-input: int - The string to be placed
+bottom: string - The input string to be placed on the bottom of the stack
+top: string - The input string to be placed on the top of the stack
+vPos: int - The vertical offset of the top string
+hPos: int - The horizontal offset of the top string
 */
 func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int) string {
 	bottomHeight := lipgloss.Height(bottom)
