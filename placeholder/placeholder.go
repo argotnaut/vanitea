@@ -20,7 +20,7 @@ func nilOr(opt *int, alt int) int {
 	return *opt
 }
 
-func GetPlaceholder(style *lipgloss.Style, wrapWidth *int, width *int, height *int) placeholderModel {
+func GetPlaceholder(style *lipgloss.Style, wrapWidth *int, width *int, height *int) PlaceholderModel {
 	var newStyle lipgloss.Style
 	if style == nil {
 		newStyle = lipgloss.NewStyle().Background(lipgloss.Color("99"))
@@ -36,7 +36,7 @@ func GetPlaceholder(style *lipgloss.Style, wrapWidth *int, width *int, height *i
 		width:  nilOr(width, terminalWidth),
 		height: nilOr(height, terminalHeight),
 	}
-	m := placeholderModel{
+	m := PlaceholderModel{
 		dimensions: dimensions,
 		style:      newStyle,
 	}
@@ -46,17 +46,17 @@ func GetPlaceholder(style *lipgloss.Style, wrapWidth *int, width *int, height *i
 	return m
 }
 
-type placeholderModel struct {
+type PlaceholderModel struct {
 	wrapWidth  *int
 	style      lipgloss.Style
 	dimensions Dimensions
 }
 
-func (m placeholderModel) Init() tea.Cmd {
+func (m PlaceholderModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m placeholderModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m PlaceholderModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.dimensions = Dimensions{
@@ -74,6 +74,11 @@ func (m placeholderModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m PlaceholderModel) SetColor(color lipgloss.Color) PlaceholderModel {
+	m.style = lipgloss.NewStyle().Background(color)
+	return m
+}
+
 func paintEnds(s string) string {
 	if len(s) == 0 {
 		return ""
@@ -84,7 +89,7 @@ func paintEnds(s string) string {
 	return "#" + s[1:len(s)-1] + "#"
 }
 
-func (m placeholderModel) View() string {
+func (m PlaceholderModel) View() string {
 	if m.dimensions.height < 1 {
 		return ""
 	}

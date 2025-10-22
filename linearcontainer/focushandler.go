@@ -1,7 +1,7 @@
 package linearcontainer
 
 /*
-FocusHandler keeps track of which child component has focus and
+FocusHandler keeps track of which component component has focus and
 determines how focus behaves
 */
 type FocusHandler interface {
@@ -11,14 +11,14 @@ type FocusHandler interface {
 	*/
 	IsFocusKey(string) bool
 	/*
-		Updates which child component has focus based on the
+		Updates which component component has focus based on the
 		given key combination
 	*/
 	HandleFocusKey(string) FocusHandler
 	/*
 		Returns the component that currently has focus
 	*/
-	GetFocusedComponent() *ChildComponent
+	GetFocusedComponent() *Component
 	/*
 		Returns the focus handler with a given container as its
 		subject. The subject being the UI element whose focus
@@ -26,27 +26,27 @@ type FocusHandler interface {
 	*/
 	SetSubjectContainer(Container) FocusHandler
 	/*
-		Returns the focus handler with a given ChildComponent pointer
+		Returns the focus handler with a given Component pointer
 		as its currently focused component
 	*/
-	SetFocusedComponent(*ChildComponent) FocusHandler
+	SetFocusedComponent(*Component) FocusHandler
 	/*
-		Returns the focus handler after having updated its focused child
+		Returns the focus handler after having updated its focused component
 	*/
-	UpdateFocusedChild() FocusHandler
+	UpdateFocusedComponent() FocusHandler
 }
 
 /*
-Returns a slice of the components' (including their child components, if they have any)
+Returns a slice of the components' (including their component components, if they have any)
 that are capable of receiving focus
 */
-func GetFocusableComponents(components []*ChildComponent) (output []*ChildComponent) {
+func GetFocusableComponents(components []*Component) (output []*Component) {
 	for _, component := range components {
 		if component.IsFocusable() {
 			output = append(output, component)
 		}
 		if lc, isLC := component.GetModel().(Container); isLC {
-			output = append(output, GetFocusableComponents(lc.GetChildren())...)
+			output = append(output, GetFocusableComponents(lc.GetComponents())...)
 		}
 	}
 	return

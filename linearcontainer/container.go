@@ -1,5 +1,6 @@
 package linearcontainer
 
 type Container interface {
-	GetChildren() []*ChildComponent
+	GetComponents() []*Component
+	GetVisibleComponents() []*Component
 }
