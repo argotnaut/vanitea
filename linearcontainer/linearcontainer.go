@@ -1,8 +1,6 @@
 package linearcontainer
 
 import (
-	"fmt"
-	"os"
 	"slices"
 	"sort"
 
@@ -311,11 +309,18 @@ func (m LinearContainerModel) GetFullContainerSize() (output tea.WindowSizeMsg) 
 }
 
 func (m LinearContainerModel) ViewComponent(model tea.Model, component *Component) string {
+	if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
+		// if component is a LinearContainerModel, make sure it gets m's FocusHandler
+		lc.SetFocusHandler(
+			lc.focusHandler.SetFocusedComponent(
+				m.GetFocusHandler().GetFocusedComponent(),
+			),
+		)
+		component.SetModel(lc)
+	}
 	if m.GetFocusHandler().GetFocusedComponent() == component {
-		fmt.Fprintf(os.Stderr, "%s is focused\n", component.GetTitle())
 		return component.RenderFocused()
 	} else {
-		fmt.Fprintf(os.Stderr, "%s isn't focused\n", component.GetTitle())
 		return component.RenderBlurred()
 	}
 }
@@ -341,7 +346,6 @@ func (m LinearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 		resizeCmd := resizeComponentModelForStyle(component, component.getSize(), m)
 		cmds = append(cmds, resizeCmd)
-
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -352,7 +356,7 @@ func (m LinearContainerModel) View() (s string) {
 	for _, component := range m.GetVisibleComponents() {
 		var model tea.Model
 		if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
-			// set the component LinearContainerModel's focused component to the parent LinearContainerModel's focused component
+			// set the child component LinearContainerModel's focused component to the parent LinearContainerModel's focused component
 			lc.SetFocusHandler(
 				lc.focusHandler.SetFocusedComponent(
 					m.GetFocusHandler().GetFocusedComponent(),

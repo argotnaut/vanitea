@@ -93,6 +93,8 @@ func ComponentFromModel(model tea.Model) *Component {
 		borderStyle:        BORDER_STYLE,
 		focusedBorderStyle: FOCUSED_BORDER_STYLE,
 		focusable:          true,
+		titlePosition:      TOP_LEFT,
+		shortcutPosition:   BOTTOM_RIGHT,
 	}
 }
 

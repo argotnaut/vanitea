@@ -37,9 +37,7 @@ func main() {
 			).SetBorderStyle(lc.NO_BORDER_STYLE).
 				SetTitle("lavender").
 				SetShowTitle(true).
-				SetTitlePosition(lc.BOTTOM_LEFT).
 				SetShortcut("(Q)").
-				SetShortcutPosition(lc.BOTTOM_RIGHT).
 				SetShowShortcut(true),
 			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
