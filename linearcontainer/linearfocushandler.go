@@ -12,7 +12,7 @@ const (
 )
 
 /*
-Handles the transfer of focus from one of a container's component components to the
+Handles the transfer of focus from one of a container's components to the
 next in a sequence determined by the container's layout hierarchy
 */
 type linearFocusHandler struct {
@@ -22,7 +22,7 @@ type linearFocusHandler struct {
 	focusedComponent *Component
 	// A slice of strings representing the key combinations that can be pressed to affect focus
 	focusKeys []string
-	// The container whose component components' focus is being handled
+	// The container whose components' focus is being handled
 	subjectContainer Container
 }
 

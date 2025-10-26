@@ -19,25 +19,31 @@ func main() {
 		[]*lc.Component{
 			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleMagenta, nil, nil, nil),
-			),
+			).SetTitle("magenta").SetShowTitle(true),
 			lc.ComponentFromModel(
 				lc.NewLinearContainerFromComponents(
 					[]*lc.Component{
 						lc.ComponentFromModel(
 							placeholder.GetPlaceholder(&styleBlue, nil, nil, nil),
-						),
+						).SetTitle("blue").SetShowTitle(true),
 						lc.ComponentFromModel(
 							placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
-						),
+						).SetTitle("small-yellow").SetShowTitle(true),
 					},
 				).SetDirection(lc.VERTICAL),
-			).SetFocusable(false).SetBorderStyle(lc.NO_BORDER_STYLE),
+			).SetFocusable(false).SetBorderStyle(lc.NO_BORDER_STYLE).SetTitle("none").SetShowTitle(false),
 			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
-			).SetBorderStyle(lc.NO_BORDER_STYLE),
+			).SetBorderStyle(lc.NO_BORDER_STYLE).
+				SetTitle("lavender").
+				SetShowTitle(true).
+				SetTitlePosition(lc.BOTTOM_LEFT).
+				SetShortcut("(Q)").
+				SetShortcutPosition(lc.BOTTOM_RIGHT).
+				SetShowShortcut(true),
 			lc.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
-			).SetBorderStyle(lc.NO_BORDER_STYLE),
+			).SetBorderStyle(lc.NO_BORDER_STYLE).SetTitle("big-yellow").SetShowTitle(true),
 		},
 	)
 

@@ -1,7 +1,7 @@
 package linearcontainer
 
 /*
-FocusHandler keeps track of which component component has focus and
+FocusHandler keeps track of which component has focus and
 determines how focus behaves
 */
 type FocusHandler interface {
@@ -11,7 +11,7 @@ type FocusHandler interface {
 	*/
 	IsFocusKey(string) bool
 	/*
-		Updates which component component has focus based on the
+		Updates which component has focus based on the
 		given key combination
 	*/
 	HandleFocusKey(string) FocusHandler
@@ -37,7 +37,7 @@ type FocusHandler interface {
 }
 
 /*
-Returns a slice of the components' (including their component components, if they have any)
+Returns a slice of the components' (including their components, if they have any)
 that are capable of receiving focus
 */
 func GetFocusableComponents(components []*Component) (output []*Component) {

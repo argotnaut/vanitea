@@ -1,6 +1,8 @@
 package linearcontainer
 
 import (
+	"fmt"
+	"os"
 	"slices"
 	"sort"
 
@@ -114,7 +116,7 @@ func (m LinearContainerModel) SetMajorAndMinorAxes(msg *tea.WindowSizeMsg, major
 }
 
 /*
-Returns the current border style of the given component component
+Returns the current border style of the given component
 */
 func (m LinearContainerModel) GetComponentStyle(component *Component) lipgloss.Style {
 	if component == nil {
@@ -131,10 +133,10 @@ func (m LinearContainerModel) GetComponentStyleByIndex(componentIdx int) lipglos
 }
 
 /*
-Sets the size of one of LinearContainerModel's component components according to the available space
+Sets the size of one of LinearContainerModel's components according to the available space
 laid out by containerSize and the Component's max/min width/height
 
-componentIdx: int - The index of the component component in the LinearContainerModel's
+componentIdx: int - The index of the component in the LinearContainerModel's
 list of Components
 
 containerSize: tea.WindowSizeMsg - The WindowSizeMsg which defines the area available to
@@ -179,9 +181,9 @@ func (m LinearContainerModel) getNewComponentSize(componentIdx int, containerSiz
 
 /*
 Returns the amount of space (in characters) along the major axis that remains
-unoccupied by the LinearContainerModel's component components
+unoccupied by the LinearContainerModel's components
 
-componentComponentSizes []tea.WindowSizeMsg - The width and height of each component component
+componentComponentSizes []tea.WindowSizeMsg - The width and height of each component
 containerSize tea.WindowSizeMsg - The width and height available to the LinearContainerModel
 */
 func (m LinearContainerModel) calculateRemainingSpace(
@@ -196,7 +198,7 @@ func (m LinearContainerModel) calculateRemainingSpace(
 }
 
 /*
-Resizes the component components according to their dimensions and the dimensions of the
+Resizes the components according to their dimensions and the dimensions of the
 LinearContainerModel
 */
 func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg) tea.Cmd {
@@ -238,7 +240,7 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 
 		for growableIdx := 0; growableIdx < len(growableComponents); growableIdx++ {
 			// try to grow each growable component to an even share of the remaining space
-			componentIdx := growableComponents[growableIdx] // get the index of the component component in m.Components
+			componentIdx := growableComponents[growableIdx] // get the index of the component in m.Components
 			newSize := m.getNewComponentSize(
 				componentIdx,
 				containerSize,
@@ -263,7 +265,7 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 	// if there are still components to grow, but not enough remaining space to share evenly between them
 	if len(growableComponents) > 0 && evenShare < 1 {
 		// give all remaining space to the growable with the highest priority
-		componentIdx := growableComponents[0] // get the index of the component component in m.Components
+		componentIdx := growableComponents[0] // get the index of the component in m.Components
 		newSize := m.getNewComponentSize(
 			componentIdx,
 			containerSize,
@@ -272,14 +274,14 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 		sizes[componentIdx] = newSize
 	}
 
-	// set all component components that got resized to their new sizes
+	// set all components that got resized to their new sizes
 	var cmds []tea.Cmd
 	for i := range len(sizes) {
 		component := m.GetComponent(i)
 		cmd := resizeComponentModelForStyle(component, sizes[i], *m)
 		cmds = append(cmds, cmd)
 	}
-	// make sure the correct component component had focus
+	// make sure the correct component had focus
 	m.focusHandler = m.GetFocusHandler().UpdateFocusedComponent()
 	return tea.Batch(cmds...)
 }
@@ -308,38 +310,14 @@ func (m LinearContainerModel) GetFullContainerSize() (output tea.WindowSizeMsg) 
 	return
 }
 
-/*
-Truncates the given TUI element to a width and height given by a tea.WindowSizeMsg
-
-sizeLimit: tea.WindowSizeMsg - The width and height to truncate the TUI element to
-input: string - The TUI element to truncate
-*/
-func limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
-	style := lipgloss.DefaultRenderer().NewStyle().
-		MaxWidth(sizeLimit.Width).
-		Width(sizeLimit.Width).
-		MaxHeight(sizeLimit.Height).
-		Height(sizeLimit.Height)
-	return style.Render(input)
-}
-
 func (m LinearContainerModel) ViewComponent(model tea.Model, component *Component) string {
-	var currentStyle lipgloss.Style
 	if m.GetFocusHandler().GetFocusedComponent() == component {
-		currentStyle = component.GetFocusBorderStyle()
+		fmt.Fprintf(os.Stderr, "%s is focused\n", component.GetTitle())
+		return component.RenderFocused()
 	} else {
-		currentStyle = component.GetBorderStyle()
+		fmt.Fprintf(os.Stderr, "%s isn't focused\n", component.GetTitle())
+		return component.RenderBlurred()
 	}
-	renderSize := component.getSize()
-	renderSize.Height = max(0, renderSize.Height-currentStyle.GetVerticalFrameSize())
-	renderSize.Width = max(0, renderSize.Width-currentStyle.GetHorizontalFrameSize())
-	view := currentStyle.Render(
-		limitSize(
-			renderSize,
-			model.View(),
-		),
-	)
-	return view
 }
 
 func (m LinearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -370,7 +348,7 @@ func (m LinearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m LinearContainerModel) View() (s string) {
 	var views []string
-	// Collect all the individual renderings for all the component components
+	// Collect all the individual renderings for all the components
 	for _, component := range m.GetVisibleComponents() {
 		var model tea.Model
 		if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
@@ -386,7 +364,7 @@ func (m LinearContainerModel) View() (s string) {
 		}
 		views = append(views, m.ViewComponent(model, component))
 	}
-	// Join component component renderings together
+	// Join component renderings together
 	if m.IsHorizontal() {
 		return (lipgloss.JoinHorizontal(
 			lipgloss.Center,
