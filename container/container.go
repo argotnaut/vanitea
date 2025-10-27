@@ -1,4 +1,4 @@
-package linearcontainer
+package container
 
 type Container interface {
 	GetComponents() []*Component

@@ -364,7 +364,7 @@ func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int
 				)
 				term = prefix + visibleTerm
 				// if we just re-entered this input string from the other one, reapply this input string's accumulated styling
-				if !isInBottomString(cellIdx - 1) {
+				if isInTopString(cellIdx - 1) {
 					term = ansi.ResetStyle + bottomStyling.String() + term
 				}
 				// record styling for bottom string
@@ -392,7 +392,7 @@ func PlaceStacked(bottom string, top string, origin Position, vPos int, hPos int
 				)
 				term = prefix + visibleTerm
 				// if we just re-entered this input string from the other one, reapply this input string's accumulated styling
-				if !isInTopString(cellIdx - 1) {
+				if isInBottomString(cellIdx - 1) {
 					term = ansi.ResetStyle + topStyling.String() + term
 				}
 				// record styling for top string

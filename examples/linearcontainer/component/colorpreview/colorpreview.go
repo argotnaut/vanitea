@@ -1,6 +1,7 @@
 package colorpreview
 
 import (
+	con "github.com/argotnaut/vanitea/container"
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
 	"github.com/charmbracelet/bubbles/list"
@@ -9,8 +10,8 @@ import (
 )
 
 type ColorPreviewModel struct {
-	colorList        *lc.Component
-	colorPlaceholder *lc.Component
+	colorList        *con.Component
+	colorPlaceholder *con.Component
 	container        *lc.LinearContainerModel
 	currentColor     string
 }
@@ -58,18 +59,18 @@ func GetColorPreviewModel() (output ColorPreviewModel) {
 	}
 	colorList := colorList{list: list.New(colors, list.NewDefaultDelegate(), 0, 0)}
 	colorList.list.Title = "Preview color"
-	output.colorList = lc.ComponentFromModel(
+	output.colorList = con.ComponentFromModel(
 		colorList,
 	).SetMaximumWidth(25)
 
 	initialColor := lipgloss.NewStyle().Background(lipgloss.Color("#648fff"))
 	colorPlaceholder := placeholder.GetPlaceholder(&initialColor, nil, nil, nil)
-	output.colorPlaceholder = lc.ComponentFromModel(
+	output.colorPlaceholder = con.ComponentFromModel(
 		colorPlaceholder,
 	)
 
 	container := lc.NewLinearContainerFromComponents(
-		[]*lc.Component{
+		[]*con.Component{
 			output.colorList,
 			output.colorPlaceholder,
 		},
