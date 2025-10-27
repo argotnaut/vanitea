@@ -1,5 +1,7 @@
 package linearcontainer
 
+import con "github.com/argotnaut/vanitea/container"
+
 /*
 FocusHandler keeps track of which component has focus and
 determines how focus behaves
@@ -18,18 +20,18 @@ type FocusHandler interface {
 	/*
 		Returns the component that currently has focus
 	*/
-	GetFocusedComponent() *Component
+	GetFocusedComponent() *con.Component
 	/*
 		Returns the focus handler with a given container as its
 		subject. The subject being the UI element whose focus
 		the focus manager is managing
 	*/
-	SetSubjectContainer(Container) FocusHandler
+	SetSubjectContainer(con.Container) FocusHandler
 	/*
 		Returns the focus handler with a given Component pointer
 		as its currently focused component
 	*/
-	SetFocusedComponent(*Component) FocusHandler
+	SetFocusedComponent(*con.Component) FocusHandler
 	/*
 		Returns the focus handler after having updated its focused component
 	*/
@@ -40,12 +42,12 @@ type FocusHandler interface {
 Returns a slice of the components' (including their components, if they have any)
 that are capable of receiving focus
 */
-func GetFocusableComponents(components []*Component) (output []*Component) {
+func GetFocusableComponents(components []*con.Component) (output []*con.Component) {
 	for _, component := range components {
 		if component.IsFocusable() {
 			output = append(output, component)
 		}
-		if lc, isLC := component.GetModel().(Container); isLC {
+		if lc, isLC := component.GetModel().(con.Container); isLC {
 			output = append(output, GetFocusableComponents(lc.GetComponents())...)
 		}
 	}

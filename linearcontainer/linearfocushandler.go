@@ -3,6 +3,7 @@ package linearcontainer
 import (
 	"slices"
 
+	con "github.com/argotnaut/vanitea/container"
 	utils "github.com/argotnaut/vanitea/utils"
 )
 
@@ -19,11 +20,11 @@ type linearFocusHandler struct {
 	// The index of the currently focused component in the list of focusable components
 	focusIndex int
 	// A pointer to the currently focused component
-	focusedComponent *Component
+	focusedComponent *con.Component
 	// A slice of strings representing the key combinations that can be pressed to affect focus
 	focusKeys []string
 	// The container whose components' focus is being handled
-	subjectContainer Container
+	subjectContainer con.Container
 }
 
 func NewLinearFocusHandler() linearFocusHandler {
@@ -33,7 +34,7 @@ func NewLinearFocusHandler() linearFocusHandler {
 	return lfh
 }
 
-func (lfh linearFocusHandler) SetSubjectContainer(subject Container) FocusHandler {
+func (lfh linearFocusHandler) SetSubjectContainer(subject con.Container) FocusHandler {
 	lfh.subjectContainer = subject
 	return lfh
 }
@@ -45,11 +46,11 @@ func (lfh linearFocusHandler) IsFocusKey(key string) bool {
 	return slices.Contains(lfh.focusKeys, key)
 }
 
-func (lfh linearFocusHandler) GetFocusedComponent() *Component {
+func (lfh linearFocusHandler) GetFocusedComponent() *con.Component {
 	return lfh.focusedComponent
 }
 
-func (lfh linearFocusHandler) SetFocusedComponent(component *Component) FocusHandler {
+func (lfh linearFocusHandler) SetFocusedComponent(component *con.Component) FocusHandler {
 	lfh.focusedComponent = component
 	return lfh
 }
@@ -94,7 +95,7 @@ func (lfh linearFocusHandler) focusBackward() FocusHandler {
 	return lfh.setFocusIndex(lfh.focusIndex - 1)
 }
 
-func (lfh linearFocusHandler) ComponentIsFocused(component *Component) bool {
+func (lfh linearFocusHandler) ComponentIsFocused(component *con.Component) bool {
 	return component == lfh.focusedComponent
 }
 

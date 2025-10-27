@@ -1,6 +1,7 @@
 package main
 
 import (
+	con "github.com/argotnaut/vanitea/container"
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,32 +17,32 @@ func main() {
 	styleYellow := lipgloss.NewStyle().Background(lipgloss.Color("#ffb000"))
 
 	linearContainer := lc.NewLinearContainerFromComponents(
-		[]*lc.Component{
-			lc.ComponentFromModel(
+		[]*con.Component{
+			con.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleMagenta, nil, nil, nil),
 			).SetTitle("magenta").SetShowTitle(true),
-			lc.ComponentFromModel(
+			con.ComponentFromModel(
 				lc.NewLinearContainerFromComponents(
-					[]*lc.Component{
-						lc.ComponentFromModel(
+					[]*con.Component{
+						con.ComponentFromModel(
 							placeholder.GetPlaceholder(&styleBlue, nil, nil, nil),
 						).SetTitle("blue").SetShowTitle(true),
-						lc.ComponentFromModel(
+						con.ComponentFromModel(
 							placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
 						).SetTitle("small-yellow").SetShowTitle(true),
 					},
 				).SetDirection(lc.VERTICAL),
-			).SetFocusable(false).SetBorderStyle(lc.NO_BORDER_STYLE).SetTitle("none").SetShowTitle(false),
-			lc.ComponentFromModel(
+			).SetFocusable(false).SetBorderStyle(con.NO_BORDER_STYLE).SetTitle("none").SetShowTitle(false),
+			con.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
-			).SetBorderStyle(lc.NO_BORDER_STYLE).
+			).SetBorderStyle(con.NO_BORDER_STYLE).
 				SetTitle("lavender").
 				SetShowTitle(true).
 				SetShortcut("(Q)").
 				SetShowShortcut(true),
-			lc.ComponentFromModel(
+			con.ComponentFromModel(
 				placeholder.GetPlaceholder(&styleYellow, nil, nil, nil),
-			).SetBorderStyle(lc.NO_BORDER_STYLE).SetTitle("big-yellow").SetShowTitle(true),
+			).SetBorderStyle(con.NO_BORDER_STYLE).SetTitle("big-yellow").SetShowTitle(true),
 		},
 	)
 
