@@ -18,7 +18,7 @@ const (
 )
 
 type LinearContainerModel struct {
-	focusHandler        FocusHandler
+	focusHandler        con.FocusHandler
 	componentComponents []*con.Component
 	direction           int
 }
@@ -32,9 +32,13 @@ func NewLinearContainer() *LinearContainerModel {
 	return &lc
 }
 
+func (m *LinearContainerModel) SetComponents(components []*con.Component) *LinearContainerModel {
+	m.componentComponents = components
+	return m
+}
+
 func NewLinearContainerFromComponents(components []*con.Component) *LinearContainerModel {
-	newLinearContainer := NewLinearContainer()
-	newLinearContainer.componentComponents = components
+	newLinearContainer := NewLinearContainer().SetComponents(components)
 	newLinearContainer.SetFocusHandler(
 		newLinearContainer.GetFocusHandler().UpdateFocusedComponent(),
 	)
@@ -62,11 +66,12 @@ func (m LinearContainerModel) GetVisibleComponents() (output []*con.Component) {
 	return
 }
 
-func (m *LinearContainerModel) SetFocusHandler(handler FocusHandler) {
+func (m *LinearContainerModel) SetFocusHandler(handler con.FocusHandler) *LinearContainerModel {
 	m.focusHandler = handler.SetSubjectContainer(m)
+	return m
 }
 
-func (m LinearContainerModel) GetFocusHandler() FocusHandler {
+func (m LinearContainerModel) GetFocusHandler() con.FocusHandler {
 	return m.focusHandler
 }
 
@@ -230,7 +235,7 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 	// holds the indices of the remaining components that can still grow
 	var growableComponents []int
 
-	// 1. set every component to its minimum width
+	// 1. set every component to its minimum size
 	for i := range len(m.GetComponents()) {
 		newSize := m.getNewComponentSize(i, containerSize, m.getMinimumSize(*(m.GetComponent(i))))
 		sizes = append(sizes, newSize)
@@ -239,7 +244,6 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 			// add it to the list of growable components
 			growableComponents = append(growableComponents, i)
 		}
-		// update the remaining space
 	}
 	// sort the indices of growable components in ascending order of priority
 	sort.Slice(growableComponents, func(i int, j int) bool {
