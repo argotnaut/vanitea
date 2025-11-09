@@ -1,9 +1,6 @@
 package colormaker
 
 import (
-	"fmt"
-	"os"
-
 	con "github.com/argotnaut/vanitea/container"
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
@@ -48,42 +45,28 @@ func (cmm ColorMakerModel) GetActionsList() actionList {
 }
 
 func GetColorMakerModel() (output ColorMakerModel) {
+	// initialize action list
 	actionsList := GetActionList(list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0))
 	actionsList.list.Title = "Actions"
 	output.actionsList = con.ComponentFromModel(
 		actionsList,
 	).SetMaximumWidth(25)
-
+	// initialize color placeholder view
 	output.currentColor = "#648fff"
 	initialColor := lipgloss.NewStyle().Background(lipgloss.Color(output.currentColor))
 	colorPlaceholder := placeholder.GetPlaceholder(&initialColor, nil, nil, nil)
 	output.colorPlaceholder = con.ComponentFromModel(
 		colorPlaceholder,
 	)
-
+	// initialize action bar
 	output.actionBar = GetActionBarModel()
-
-	// container := lc.NewLinearContainerFromComponents( // main view
-	// 	[]*con.Component{
-	// 		con.ComponentFromModel(
-	// 			lc.NewLinearContainerFromComponents(
-	// 				[]*con.Component{
-	// 					output.actionsList.SetTitle("actions stack").SetShowTitle(true),      // actions stack on the left of the view
-	// 					output.colorPlaceholder.SetTitle("color preview").SetShowTitle(true), // current color on the right of the view
-	// 				},
-	// 			),
-	// 		).SetFocusable(true).SetFocusBorderStyle(con.NO_BORDER_STYLE).SetBorderStyle(con.NO_BORDER_STYLE).SetTitle("none").SetShowTitle(false),
-	// 		output.actionBar, // action bar at the bottom
-	// 	},
-	// )
+	// initialize main linear container (contains all the components except the action bar at the bottom)
 	container := lc.NewLinearContainerFromComponents(
 		[]*con.Component{
 			output.actionsList.SetTitle("actions stack").SetShowTitle(true),      // actions stack on the left of the view
 			output.colorPlaceholder.SetTitle("color preview").SetShowTitle(true), // current color on the right of the view
 		},
 	)
-	fmt.Fprintf(os.Stderr, "actionbar pointer is: %p\n", output.actionBar)
-
 	output.container = container
 	return output
 }
@@ -93,16 +76,19 @@ func (m ColorMakerModel) Init() tea.Cmd {
 }
 
 func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	updateActionBar := func(msg tea.Msg) (ColorMakerModel, tea.Cmd) {
-		newActionBarModel, cmd := m.actionBar.Update(msg)
+	var cmds []tea.Cmd
+	message := msg
+	updateActionBar := func(message tea.Msg) (ColorMakerModel, tea.Cmd) {
+		newActionBarModel, cmd := m.actionBar.Update(message)
 		*(m.actionBar) = newActionBarModel.(ActionBarModel)
 		return m, cmd
 	}
-	updateContainer := func(msg tea.Msg) (ColorMakerModel, tea.Cmd) {
-		newContainerModel, cmd := m.container.Update(msg)
+	updateContainer := func(message tea.Msg) (ColorMakerModel, tea.Cmd) {
+		newContainerModel, cmd := m.container.Update(message)
 		*(m.container) = newContainerModel.(lc.LinearContainerModel)
 		return m, cmd
 	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -118,23 +104,21 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		default:
 			if m.actionBarIsFocused {
-				return updateActionBar(msg)
+				return updateActionBar(message)
 			} else {
-				return updateContainer(msg)
+				return updateContainer(message)
 			}
 		}
 	case tea.WindowSizeMsg:
-		msg = tea.WindowSizeMsg{
+		message = tea.WindowSizeMsg{
 			Height: max(0, msg.Height-1),
 			Width:  msg.Width,
 		}
 	}
-	var cmds []tea.Cmd
 
-	// newContainerModel, cmd := m.container.Update(msg)
-	// *(m.container) = newContainerModel.(lc.LinearContainerModel)
-	// cmds = append(cmds, cmd)
-	_, cmd := updateContainer(msg)
+	_, cmd := updateContainer(message)
+	cmds = append(cmds, cmd)
+	_, cmd = updateActionBar(message)
 	cmds = append(cmds, cmd)
 
 	// change the placeholder's color if the selected color has changed
