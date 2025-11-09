@@ -38,10 +38,18 @@ type linearFocusHandler struct {
 	keyMap KeyMap
 	// The container whose components' focus is being handled
 	componentDelegate func() []*Component
+	// Whether to ignore focus for the child components of those provided by componentDelegate
+	shallow bool
 }
 
 func NewDefaultLinearFocusHandler(delegate func() []*Component) linearFocusHandler {
 	return NewLinearFocusHandler(NewDefaultKeyMap(), delegate)
+}
+
+func NewDefaultShallowLinearFocusHandler(delegate func() []*Component) linearFocusHandler {
+	lfh := NewLinearFocusHandler(NewDefaultKeyMap(), delegate)
+	lfh.shallow = true
+	return lfh
 }
 
 func NewLinearFocusHandler(keyMap KeyMap, delegate func() []*Component) linearFocusHandler {
@@ -53,7 +61,11 @@ func NewLinearFocusHandler(keyMap KeyMap, delegate func() []*Component) linearFo
 }
 
 func (lfh linearFocusHandler) SetComponentDelegate(componentDelegate func() []*Component) FocusHandler {
-	lfh.componentDelegate = func() []*Component { return GetAllFocusableComponents(componentDelegate()) }
+	focusableFunc := GetAllFocusableComponents
+	if lfh.shallow {
+		focusableFunc = GetFocusableComponents
+	}
+	lfh.componentDelegate = func() []*Component { return focusableFunc(componentDelegate()) }
 	if lfh.focusedComponent == nil && componentDelegate != nil && len(lfh.componentDelegate()) > 0 {
 		lfh.focusedComponent = lfh.componentDelegate()[0]
 	}
