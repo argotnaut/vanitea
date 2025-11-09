@@ -18,17 +18,14 @@ const (
 )
 
 type LinearContainerModel struct {
-	focusHandler        FocusHandler
+	focusHandler        con.FocusHandler
 	componentComponents []*con.Component
 	direction           int
 }
 
 func NewLinearContainer() *LinearContainerModel {
-	focusHandler := NewLinearFocusHandler()
-	lc := LinearContainerModel{
-		focusHandler: focusHandler,
-	}
-	lc.SetFocusHandler(lc.focusHandler.SetSubjectContainer(lc))
+	lc := LinearContainerModel{}
+	lc.SetFocusHandler(con.NewDefaultLinearFocusHandler(lc.GetComponents))
 	return &lc
 }
 
@@ -36,7 +33,7 @@ func NewLinearContainerFromComponents(components []*con.Component) *LinearContai
 	newLinearContainer := NewLinearContainer()
 	newLinearContainer.componentComponents = components
 	newLinearContainer.SetFocusHandler(
-		newLinearContainer.GetFocusHandler().UpdateFocusedComponent(),
+		newLinearContainer.GetFocusHandler(),
 	)
 	return newLinearContainer
 }
@@ -62,11 +59,11 @@ func (m LinearContainerModel) GetVisibleComponents() (output []*con.Component) {
 	return
 }
 
-func (m *LinearContainerModel) SetFocusHandler(handler FocusHandler) {
-	m.focusHandler = handler.SetSubjectContainer(m)
+func (m *LinearContainerModel) SetFocusHandler(handler con.FocusHandler) {
+	m.focusHandler = handler.SetComponentDelegate(m.GetComponents)
 }
 
-func (m LinearContainerModel) GetFocusHandler() FocusHandler {
+func (m LinearContainerModel) GetFocusHandler() con.FocusHandler {
 	return m.focusHandler
 }
 
@@ -304,8 +301,9 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 		cmd := resizeComponentModelForStyle(component, sizes[i], *m)
 		cmds = append(cmds, cmd)
 	}
-	// make sure the correct component had focus
-	m.focusHandler = m.GetFocusHandler().UpdateFocusedComponent()
+	// DEBUG
+	// // make sure the correct component had focus
+	// m.focusHandler = m.GetFocusHandler().UpdateFocusedComponent()
 	return tea.Batch(cmds...)
 }
 
