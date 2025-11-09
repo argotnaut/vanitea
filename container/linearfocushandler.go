@@ -1,11 +1,14 @@
 package container
 
 import (
-	"fmt"
-	"os"
 	"slices"
 
 	utils "github.com/argotnaut/vanitea/utils"
+)
+
+const (
+	FOCUS_FORWARD  = "tab"
+	FOCUS_BACKWARD = "shift+tab"
 )
 
 type KeyMap struct {
@@ -29,18 +32,24 @@ Handles the transfer of focus from one of a container's components to the
 next in a sequence determined by the container's layout hierarchy
 */
 type linearFocusHandler struct {
-	// The index of the currently focused component in the list of focusable components
-	focusIndex int
 	// A pointer to the currently focused component
 	focusedComponent *Component
 	// The key combinations that can be pressed to affect focus
 	keyMap KeyMap
-	// The function to use when getting the list of focuseable components
+	// The container whose components' focus is being handled
 	componentDelegate func() []*Component
+	// Whether to ignore focus for the child components of those provided by componentDelegate
+	shallow bool
 }
 
 func NewDefaultLinearFocusHandler(delegate func() []*Component) linearFocusHandler {
 	return NewLinearFocusHandler(NewDefaultKeyMap(), delegate)
+}
+
+func NewDefaultShallowLinearFocusHandler(delegate func() []*Component) linearFocusHandler {
+	lfh := NewLinearFocusHandler(NewDefaultKeyMap(), delegate)
+	lfh.shallow = true
+	return lfh
 }
 
 func NewLinearFocusHandler(keyMap KeyMap, delegate func() []*Component) linearFocusHandler {
@@ -48,19 +57,23 @@ func NewLinearFocusHandler(keyMap KeyMap, delegate func() []*Component) linearFo
 		keyMap:            keyMap,
 		componentDelegate: delegate,
 	}
-	return lfh.UpdateFocusedComponent().(linearFocusHandler)
+	return lfh
 }
 
-func IsLinearFocusHandler(handler FocusHandler) bool {
-	switch handler.(type) {
-	case linearFocusHandler:
-		return true
+func ToLinearFocusHandler(handler FocusHandler) (lfh linearFocusHandler, ok bool) {
+	lfh, ok = handler.(linearFocusHandler)
+	return
+}
+
+func (lfh linearFocusHandler) SetComponentDelegate(componentDelegate func() []*Component) FocusHandler {
+	focusableFunc := GetAllFocusableComponents
+	if lfh.shallow {
+		focusableFunc = GetFocusableComponents
 	}
-	return false
-}
-
-func (lfh linearFocusHandler) SetComponentsDelegate(delegate func() []*Component) FocusHandler {
-	lfh.componentDelegate = delegate
+	lfh.componentDelegate = func() []*Component { return focusableFunc(componentDelegate()) }
+	if lfh.focusedComponent == nil && componentDelegate != nil && len(lfh.componentDelegate()) > 0 {
+		lfh.focusedComponent = lfh.componentDelegate()[0]
+	}
 	return lfh
 }
 
@@ -77,47 +90,30 @@ func (lfh linearFocusHandler) GetFocusedComponent() *Component {
 
 func (lfh linearFocusHandler) SetFocusedComponent(component *Component) FocusHandler {
 	lfh.focusedComponent = component
-	return lfh.updateFocusIndex()
-}
-
-/*
-Returns a FocusHandler whose focused component pointer has been updated according
-to this current focus index and the subject container's focusable component
-*/
-func (lfh linearFocusHandler) UpdateFocusedComponent() FocusHandler {
-	if lfh.componentDelegate == nil {
-		return lfh
-	}
-	focusables := GetFocusableComponents(lfh.componentDelegate())
-	lfh.focusIndex = utils.WrapInt(lfh.focusIndex, 0, len(focusables))
-	lfh.focusedComponent = focusables[lfh.focusIndex]
 	return lfh
 }
 
-/*
-Returns a FocusHandler whose focusIndex points to its current focusedComponent
-*/
-func (lfh linearFocusHandler) updateFocusIndex() FocusHandler {
-	for i, component := range GetFocusableComponents(lfh.componentDelegate()) {
-		if component == lfh.focusedComponent {
-			lfh.focusIndex = i
+func (lfh linearFocusHandler) shiftFocus(displacement int) FocusHandler {
+	components := lfh.componentDelegate()
+	if len(components) < 1 {
+		return lfh
+	}
+	newIndex := 0
+	for i, comp := range components {
+		if comp == lfh.GetFocusedComponent() {
+			newIndex = utils.WrapInt(i+displacement, 0, len(components))
 			break
 		}
 	}
-	return lfh
-}
-
-func (lfh linearFocusHandler) setFocusIndex(focusIndex int) FocusHandler {
-	lfh.focusIndex = focusIndex
-	return lfh.UpdateFocusedComponent()
+	return lfh.SetFocusedComponent(components[newIndex])
 }
 
 func (lfh linearFocusHandler) focusForward() FocusHandler {
-	return lfh.setFocusIndex(lfh.focusIndex + 1)
+	return lfh.shiftFocus(1)
 }
 
 func (lfh linearFocusHandler) focusBackward() FocusHandler {
-	return lfh.setFocusIndex(lfh.focusIndex - 1)
+	return lfh.shiftFocus(-1)
 }
 
 func (lfh linearFocusHandler) ComponentIsFocused(component *Component) bool {
@@ -125,7 +121,6 @@ func (lfh linearFocusHandler) ComponentIsFocused(component *Component) bool {
 }
 
 func (lfh linearFocusHandler) HandleFocusKey(key string) FocusHandler {
-	fmt.Fprintf(os.Stderr, "Handling focus key in linearFocusHandler: %s\n", key)
 	if slices.Contains(lfh.keyMap.FocusForward, key) {
 		return lfh.focusForward()
 	} else if slices.Contains(lfh.keyMap.FocusBackward, key) {

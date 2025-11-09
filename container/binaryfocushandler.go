@@ -24,17 +24,6 @@ func NewDefaultBinaryFocusHandler(delegate func() []*Component) binaryFocusHandl
 	return NewBinaryFocusHandler([]string{BINARY_FOCUS_KEY}, delegate)
 }
 
-func GetFocused(handler FocusHandler) int {
-	if bfh, ok := handler.(binaryFocusHandler); ok {
-		if bfh.firstComponentFocused {
-			return 1
-		} else {
-			return 0
-		}
-	}
-	return -1
-}
-
 func NewBinaryFocusHandler(focusKeys []string, delegate func() []*Component) binaryFocusHandler {
 	m := binaryFocusHandler{
 		focusKeys:         focusKeys,
@@ -43,7 +32,7 @@ func NewBinaryFocusHandler(focusKeys []string, delegate func() []*Component) bin
 	return m
 }
 
-func (m binaryFocusHandler) SetComponentsDelegate(delegate func() []*Component) FocusHandler {
+func (m binaryFocusHandler) SetComponentDelegate(delegate func() []*Component) FocusHandler {
 	m.componentDelegate = func() (output []*Component) {
 		for _, component := range delegate() {
 			if component.IsFocusable() {
@@ -114,7 +103,6 @@ func (m binaryFocusHandler) SwitchFocus() FocusHandler {
 
 func (m binaryFocusHandler) HandleFocusKey(key string) FocusHandler {
 	if slices.Contains(m.focusKeys, key) {
-		fmt.Fprintf(os.Stderr, "switching focus\n")
 		return m.SwitchFocus()
 	}
 	return m

@@ -20,33 +20,40 @@ type FocusHandler interface {
 	*/
 	GetFocusedComponent() *Component
 	/*
-		Returns the focus handler with a given container as its
-		subject. The subject being the UI element whose focus
-		the focus manager is managing
+		Returns the focus handler which uses the given
+		function to get its list of focusable components
 	*/
-	SetComponentsDelegate(func() []*Component) FocusHandler
+	SetComponentDelegate(func() []*Component) FocusHandler
 	/*
 		Returns the focus handler with a given Component pointer
 		as its currently focused component
 	*/
 	SetFocusedComponent(*Component) FocusHandler
-	// /*
-	// 	Returns the focus handler after having updated its focused component
-	// */
-	// UpdateFocusedComponent() FocusHandler
 }
 
 /*
-Returns a slice of the components' (including their components, if they have any)
+Returns a slice of the components (including their child components, if they have any)
 that are capable of receiving focus
+*/
+func GetAllFocusableComponents(components []*Component) (output []*Component) {
+	for _, component := range components {
+		if component.IsFocusable() {
+			output = append(output, component)
+		}
+		if cont, isCont := component.GetModel().(Container); isCont {
+			output = append(output, GetAllFocusableComponents(cont.GetComponents())...)
+		}
+	}
+	return
+}
+
+/*
+Returns a slice of the components that are capable of receiving focus
 */
 func GetFocusableComponents(components []*Component) (output []*Component) {
 	for _, component := range components {
 		if component.IsFocusable() {
 			output = append(output, component)
-		}
-		if lc, isLC := component.GetModel().(Container); isLC {
-			output = append(output, GetFocusableComponents(lc.GetComponents())...)
 		}
 	}
 	return

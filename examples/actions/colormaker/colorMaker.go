@@ -32,7 +32,11 @@ type ColorMakerModel struct {
 	/*
 		The component from which a user can execute actions
 	*/
-	actionBar *con.Component
+	actionBar *ActionBarModel
+	/*
+		ActionBar is focused
+	*/
+	actionBarIsFocused bool
 }
 
 func (cmm ColorMakerModel) GetColorPlaceholder() placeholder.PlaceholderModel {
@@ -57,33 +61,26 @@ func GetColorMakerModel() (output ColorMakerModel) {
 		colorPlaceholder,
 	)
 
-	output.actionBar = con.ComponentFromModel(
-		GetActionBarModel(),
-	).
-		SetMaximumHeight(1).
-		SetMinimumHeight(1).
-		SetBorderStyle(con.NO_BORDER_STYLE).
-		SetFocusBorderStyle(con.NO_BORDER_STYLE).
-		SetTitle("action bar")
+	output.actionBar = GetActionBarModel()
 
-	container := lc.NewLinearContainerFromComponents( // main view
+	// container := lc.NewLinearContainerFromComponents( // main view
+	// 	[]*con.Component{
+	// 		con.ComponentFromModel(
+	// 			lc.NewLinearContainerFromComponents(
+	// 				[]*con.Component{
+	// 					output.actionsList.SetTitle("actions stack").SetShowTitle(true),      // actions stack on the left of the view
+	// 					output.colorPlaceholder.SetTitle("color preview").SetShowTitle(true), // current color on the right of the view
+	// 				},
+	// 			),
+	// 		).SetFocusable(true).SetFocusBorderStyle(con.NO_BORDER_STYLE).SetBorderStyle(con.NO_BORDER_STYLE).SetTitle("none").SetShowTitle(false),
+	// 		output.actionBar, // action bar at the bottom
+	// 	},
+	// )
+	container := lc.NewLinearContainerFromComponents(
 		[]*con.Component{
-			con.ComponentFromModel(
-				lc.NewLinearContainerFromComponents(
-					[]*con.Component{
-						output.actionsList.SetTitle("actions stack").SetShowTitle(true),      // actions stack on the left of the view
-						output.colorPlaceholder.SetTitle("color preview").SetShowTitle(true), // current color on the right of the view
-					},
-				),
-			).SetFocusable(true).SetFocusBorderStyle(con.NO_BORDER_STYLE).SetBorderStyle(con.NO_BORDER_STYLE).SetTitle("none").SetShowTitle(false),
-			output.actionBar, // action bar at the bottom
+			output.actionsList.SetTitle("actions stack").SetShowTitle(true),      // actions stack on the left of the view
+			output.colorPlaceholder.SetTitle("color preview").SetShowTitle(true), // current color on the right of the view
 		},
-	)
-	container.SetDirection(lc.VERTICAL).SetFocusHandler(
-		con.NewBinaryFocusHandler(
-			[]string{"ctrl+_", "g"},
-			container.GetComponents,
-		), // this maps to using ctrl+/ to switch between action bar and main view
 	)
 	fmt.Fprintf(os.Stderr, "actionbar pointer is: %p\n", output.actionBar)
 
@@ -92,28 +89,52 @@ func GetColorMakerModel() (output ColorMakerModel) {
 }
 
 func (m ColorMakerModel) Init() tea.Cmd {
-	return m.container.Init()
+	return tea.Batch(m.container.Init(), m.actionBar.Init())
 }
 
 func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	updateActionBar := func(msg tea.Msg) (ColorMakerModel, tea.Cmd) {
+		newActionBarModel, cmd := m.actionBar.Update(msg)
+		*(m.actionBar) = newActionBarModel.(ActionBarModel)
+		return m, cmd
+	}
+	updateContainer := func(msg tea.Msg) (ColorMakerModel, tea.Cmd) {
+		newContainerModel, cmd := m.container.Update(msg)
+		*(m.container) = newContainerModel.(lc.LinearContainerModel)
+		return m, cmd
+	}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "ctrl+q":
-			return m, tea.Quit
-		case "ctrl+h":
-			fullSize := m.container.GetFullContainerSize()
-			m.actionsList.ToggleHidden()
-			m.container.ResizeComponents(fullSize)
+		case "ctrl+_":
+			if m.actionBarIsFocused {
+				m.actionBar.input.Blur()
+			} else {
+				m.actionBar.input.Focus()
+			}
+			m.actionBarIsFocused = !m.actionBarIsFocused
 			return m, nil
+		default:
+			if m.actionBarIsFocused {
+				return updateActionBar(msg)
+			} else {
+				return updateContainer(msg)
+			}
+		}
+	case tea.WindowSizeMsg:
+		msg = tea.WindowSizeMsg{
+			Height: max(0, msg.Height-1),
+			Width:  msg.Width,
 		}
 	}
 	var cmds []tea.Cmd
 
-	newContainerModel, cmd := m.container.Update(msg)
-	*(m.container) = newContainerModel.(lc.LinearContainerModel)
+	// newContainerModel, cmd := m.container.Update(msg)
+	// *(m.container) = newContainerModel.(lc.LinearContainerModel)
+	// cmds = append(cmds, cmd)
+	_, cmd := updateContainer(msg)
 	cmds = append(cmds, cmd)
 
 	// change the placeholder's color if the selected color has changed
@@ -128,5 +149,9 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ColorMakerModel) View() string {
-	return m.container.View()
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		m.container.View(),
+		m.actionBar.View(),
+	)
 }

@@ -11,9 +11,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// actionBar := cm.GetActionBarModel()
-	// _, err := tea.NewProgram(actionBar, tea.WithAltScreen()).Run()
-	// if err != nil {
-	// 	panic(err)
-	// }
 }
