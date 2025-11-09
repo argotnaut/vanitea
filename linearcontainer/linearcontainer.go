@@ -1,6 +1,8 @@
 package linearcontainer
 
 import (
+	"fmt"
+	"os"
 	"slices"
 	"sort"
 
@@ -18,31 +20,26 @@ const (
 )
 
 type LinearContainerModel struct {
-	focusHandler        con.FocusHandler
-	componentComponents []*con.Component
-	direction           int
+	focusHandler con.FocusHandler
+	components   []*con.Component
+	direction    int
 }
 
 func NewLinearContainer() *LinearContainerModel {
-	focusHandler := NewLinearFocusHandler()
-	lc := LinearContainerModel{
-		focusHandler: focusHandler,
-	}
-	lc.SetFocusHandler(lc.focusHandler.SetSubjectContainer(lc))
-	return &lc
+	return NewLinearContainerFromComponents([]*con.Component{})
 }
 
 func (m *LinearContainerModel) SetComponents(components []*con.Component) *LinearContainerModel {
-	m.componentComponents = components
+	m.components = components
 	return m
 }
 
 func NewLinearContainerFromComponents(components []*con.Component) *LinearContainerModel {
-	newLinearContainer := NewLinearContainer().SetComponents(components)
-	newLinearContainer.SetFocusHandler(
-		newLinearContainer.GetFocusHandler().UpdateFocusedComponent(),
-	)
-	return newLinearContainer
+	lc := LinearContainerModel{
+		components: components,
+	}
+	lc.SetFocusHandler(con.NewDefaultLinearFocusHandler(lc.GetComponents))
+	return &lc
 }
 
 func (m LinearContainerModel) Init() tea.Cmd {
@@ -54,11 +51,11 @@ func (m LinearContainerModel) Init() tea.Cmd {
 }
 
 func (m LinearContainerModel) GetComponents() []*con.Component {
-	return m.componentComponents
+	return m.components
 }
 
 func (m LinearContainerModel) GetVisibleComponents() (output []*con.Component) {
-	for _, component := range m.componentComponents {
+	for _, component := range m.components {
 		if !component.IsHidden() {
 			output = append(output, component)
 		}
@@ -67,7 +64,7 @@ func (m LinearContainerModel) GetVisibleComponents() (output []*con.Component) {
 }
 
 func (m *LinearContainerModel) SetFocusHandler(handler con.FocusHandler) *LinearContainerModel {
-	m.focusHandler = handler.SetSubjectContainer(m)
+	m.focusHandler = handler.SetComponentsDelegate(m.GetComponents)
 	return m
 }
 
@@ -308,8 +305,8 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 		cmd := resizeComponentModelForStyle(component, sizes[i], *m)
 		cmds = append(cmds, cmd)
 	}
-	// make sure the correct component had focus
-	m.focusHandler = m.GetFocusHandler().UpdateFocusedComponent()
+	// // make sure the correct component had focus
+	m.focusHandler = m.GetFocusHandler().SetComponentsDelegate(m.GetComponents)
 	return tea.Batch(cmds...)
 }
 
@@ -339,13 +336,15 @@ func (m LinearContainerModel) GetFullContainerSize() (output tea.WindowSizeMsg) 
 
 func (m LinearContainerModel) ViewComponent(model tea.Model, component *con.Component) string {
 	if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
-		// if component is a LinearContainerModel, make sure it gets m's FocusHandler
-		lc.SetFocusHandler(
-			lc.focusHandler.SetFocusedComponent(
-				m.GetFocusHandler().GetFocusedComponent(),
-			),
-		)
-		component.SetModel(lc)
+		if con.IsLinearFocusHandler(m.GetFocusHandler()) {
+			// if component is a LinearContainerModel, make sure it gets m's FocusHandler
+			lc.SetFocusHandler(
+				lc.GetFocusHandler().SetFocusedComponent(
+					m.GetFocusHandler().GetFocusedComponent(),
+				),
+			)
+			component.SetModel(lc)
+		}
 	}
 	if m.GetFocusHandler().GetFocusedComponent() == component {
 		return component.RenderFocused()
@@ -359,7 +358,12 @@ func (m LinearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.GetFocusHandler().IsFocusKey(msg.String()) {
+			fmt.Fprintf(os.Stderr, "IsFocusKey: %s\n", msg.String())
 			m.SetFocusHandler(m.GetFocusHandler().HandleFocusKey(msg.String()))
+			fmt.Fprintf(os.Stderr, "FocusKey handled and new handler set: %d", con.GetFocused(m.GetFocusHandler()))
+			fmt.Fprintf(os.Stderr, "newFocusedComponent: %p\n", m.GetFocusHandler().GetFocusedComponent())
+
+			return m, nil
 		} else {
 			focused := m.GetFocusHandler().GetFocusedComponent()
 			updated, keyUpdateCmd := focused.Update(msg)
@@ -369,7 +373,8 @@ func (m LinearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		return m, (&m).ResizeComponents(msg)
 	}
-	for _, component := range m.GetComponents() {
+	for i, component := range m.GetComponents() {
+		fmt.Fprintf(os.Stderr, "updating %s, idx: %d\n", component.GetTitle(), i)
 		model, cmd := component.GetModel().Update(msg)
 		component.SetModel(model)
 		cmds = append(cmds, cmd)
@@ -387,7 +392,7 @@ func (m LinearContainerModel) View() (s string) {
 		if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
 			// set the child component LinearContainerModel's focused component to the parent LinearContainerModel's focused component
 			lc.SetFocusHandler(
-				lc.focusHandler.SetFocusedComponent(
+				lc.GetFocusHandler().SetFocusedComponent(
 					m.GetFocusHandler().GetFocusedComponent(),
 				),
 			)
