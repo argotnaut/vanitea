@@ -60,6 +60,11 @@ func NewLinearFocusHandler(keyMap KeyMap, delegate func() []*Component) linearFo
 	return lfh
 }
 
+func ToLinearFocusHandler(handler FocusHandler) (lfh linearFocusHandler, ok bool) {
+	lfh, ok = handler.(linearFocusHandler)
+	return
+}
+
 func (lfh linearFocusHandler) SetComponentDelegate(componentDelegate func() []*Component) FocusHandler {
 	focusableFunc := GetAllFocusableComponents
 	if lfh.shallow {

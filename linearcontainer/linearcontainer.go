@@ -377,19 +377,7 @@ func (m LinearContainerModel) View() (s string) {
 	var views []string
 	// Collect all the individual renderings for all the components
 	for _, component := range m.GetVisibleComponents() {
-		var model tea.Model
-		if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
-			// set the child component LinearContainerModel's focused component to the parent LinearContainerModel's focused component
-			lc.SetFocusHandler(
-				lc.focusHandler.SetFocusedComponent(
-					m.GetFocusHandler().GetFocusedComponent(),
-				),
-			)
-			model = lc
-		} else {
-			model = component.GetModel()
-		}
-		views = append(views, m.ViewComponent(model, component))
+		views = append(views, m.ViewComponent(component.GetModel(), component))
 	}
 	// Join component renderings together
 	if m.IsHorizontal() {
