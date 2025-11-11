@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/argotnaut/vanitea/utils"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -38,10 +39,6 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		matchedRunes []int
 		s            = &d.Styles
 	)
-	const (
-		bullet   = "•"
-		ellipsis = "…"
-	)
 
 	if i, ok := item.(Item); ok {
 		title = i.Title()
@@ -56,7 +53,7 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 
 	// Prevent text from exceeding list width
 	textwidth := m.Width() - s.NormalTitle.GetPaddingLeft() - s.NormalTitle.GetPaddingRight()
-	title = ansi.Truncate(title, textwidth, ellipsis)
+	title = ansi.Truncate(title, textwidth, utils.ELLIPSIS)
 
 	// Conditions
 	var (

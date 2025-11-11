@@ -1,5 +1,7 @@
 package container
 
+import "fmt"
+
 type Action interface {
 	/*
 		Allows a caller to execute the action
@@ -26,4 +28,54 @@ type Action interface {
 	*/
 	GetTarget() *Component
 	String() string
+}
+
+type DefaultAction struct {
+	name        string
+	description string
+	shortcut    string
+	target      *Component
+	execute     func()
+	undo        func()
+}
+
+func NewDefaultAction(name string, description string, shortcut string, target *Component, execute func(), undo func()) DefaultAction {
+	return DefaultAction{
+		name:        name,
+		description: description,
+		shortcut:    shortcut,
+		target:      target,
+		execute:     execute,
+		undo:        undo,
+	}
+}
+
+func (m DefaultAction) Execute() {
+	if m.execute != nil {
+		m.execute()
+	}
+}
+func (m DefaultAction) Undo() {
+	if m.undo != nil {
+		m.undo()
+	}
+}
+func (m DefaultAction) GetName() string {
+	return m.name
+}
+func (m DefaultAction) GetDescription() string {
+	return m.description
+}
+func (m DefaultAction) GetShortcut() string {
+	return m.shortcut
+}
+func (m DefaultAction) GetTarget() *Component {
+	return m.target
+}
+func (m DefaultAction) String() string {
+	output := m.GetName()
+	if m.target != nil {
+		output += fmt.Sprintf(":%s", m.GetName())
+	}
+	return output
 }

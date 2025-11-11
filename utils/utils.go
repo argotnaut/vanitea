@@ -9,7 +9,11 @@ import (
 	tsize "github.com/kopoli/go-terminal-size"
 )
 
-const WHITESPACE_CHAR = " "
+const (
+	WHITESPACE_CHAR = " "
+	BULLET          = "•"
+	ELLIPSIS        = "…"
+)
 
 type Position struct {
 	X float64

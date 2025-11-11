@@ -60,6 +60,7 @@ func GetColorMakerModel() (output ColorMakerModel) {
 	)
 	// initialize action bar
 	output.actionBar = GetActionBarModel()
+	output.actionBar.input.Blur()
 	// initialize main linear container (contains all the components except the action bar at the bottom)
 	container := lc.NewLinearContainerFromComponents(
 		[]*con.Component{
