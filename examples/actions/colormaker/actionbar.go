@@ -82,8 +82,19 @@ func (m ActionBarModel) Init() tea.Cmd {
 func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	// case tea.KeyMsg:
-
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			if m.actionsDelegate != nil {
+				val := m.input.Value()
+				for _, action := range m.actionsDelegate() {
+					if action.GetName() == val {
+						action.Execute()
+						m.input.Reset()
+					}
+				}
+			}
+		}
 	case tea.WindowSizeMsg:
 		m.input.Width = msg.Width
 	}
