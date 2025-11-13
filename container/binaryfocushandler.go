@@ -1,8 +1,6 @@
 package container
 
 import (
-	"fmt"
-	"os"
 	"slices"
 )
 
@@ -79,7 +77,6 @@ func (m binaryFocusHandler) GetFocusedComponent() (output *Component) {
 			c, _ := m.GetFirstComponent()
 			return c
 		}
-		fmt.Fprintf(os.Stderr, "returning focused component\n")
 		c, _ := m.GetSecondComponent()
 		return c
 	}
@@ -87,10 +84,8 @@ func (m binaryFocusHandler) GetFocusedComponent() (output *Component) {
 
 func (m binaryFocusHandler) SetFocusedComponent(component *Component) FocusHandler {
 	if first, ok := m.GetFirstComponent(); ok && first == component {
-		fmt.Fprintf(os.Stderr, "Was first\n")
 		m.firstComponentFocused = true
 	} else if second, ok := m.GetSecondComponent(); ok && second == component {
-		fmt.Fprintf(os.Stderr, "Was second\n")
 		m.firstComponentFocused = false
 	}
 	return m

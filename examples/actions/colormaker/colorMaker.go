@@ -1,9 +1,12 @@
 package colormaker
 
 import (
+	"strings"
+
 	con "github.com/argotnaut/vanitea/container"
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
+	"github.com/argotnaut/vanitea/utils"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -44,6 +47,86 @@ func (cmm ColorMakerModel) GetActionsList() actionList {
 	return cmm.actionsList.GetModel().(actionList)
 }
 
+func (m ColorMakerModel) defaultActionsForActionsList() []con.Action {
+	return []con.Action{
+		con.NewDefaultAction(
+			"toggle-hidden",
+			"Show/hide the actions list view",
+			"ctrl+h",
+			m.actionsList,
+			func() {
+				fullSize := m.container.GetFullContainerSize()
+				m.actionsList.ToggleHidden()
+				newContainerModel, _ := m.container.Update(
+					m.container.ResizeComponents(fullSize),
+				)
+				*(m.container) = newContainerModel.(lc.LinearContainerModel)
+			},
+			nil,
+		),
+	}
+}
+
+func (m ColorMakerModel) defaultActionsForColorPlaceholder() (output []con.Action) {
+	type color struct {
+		name string
+		hex  string
+	}
+	colors := []color{
+		{name: "Dark cyan", hex: "#008B8B"},
+		{name: "Acid green", hex: "#B0BF1A"},
+		{name: "Cordovan", hex: "#893F45"},
+		{name: "Cerise", hex: "#DE3163"},
+		{name: "Antique bronze", hex: "#665D1E"},
+		{name: "Cambridge blue", hex: "#A3C1AD"},
+		{name: "Cameo pink", hex: "#EFBBCC"},
+		{name: "Blue bell", hex: "#A2A2D0"},
+		{name: "Catawba", hex: "#703642"},
+		{name: "Charcoal", hex: "#36454F"},
+		{name: "Chili red", hex: "#E23D28"},
+		{name: "Dark olive green", hex: "#556B2F"},
+		{name: "Dark sea green", hex: "#8FBC8F"},
+		{name: "Deep champagne", hex: "#FAD6A5"},
+		{name: "Ecru", hex: "#C2B280"},
+		{name: "Eggplant", hex: "#614051"},
+		{name: "English vermillion", hex: "#CC474B"},
+		{name: "Finn", hex: "#683068"},
+		{name: "French bistre", hex: "#856D4D"},
+		{name: "Fulvous", hex: "#E48400"},
+		{name: "Heliotrope gray", hex: "#AA98A9"},
+		{name: "Keppel", hex: "#3AB09E"},
+		{name: "Jonquil", hex: "#F4CA16"},
+		{name: "Light periwinkle", hex: "#C5CBE1"},
+		{name: "Mauve", hex: "#E0B0FF"},
+		{name: "Myrtle green", hex: "#317873"},
+		{name: "Nadeshiko pink", hex: "#F6ADC6"},
+		{name: "Nyanza", hex: "#E9FFDB"},
+		{name: "Powder blue", hex: "#B0E0E6"},
+		{name: "Razzmatazz", hex: "#E3256B"},
+	}
+	shortcutIndices := "1234567890abcdefghijklmnopqrstuvwxyz"
+	getColorAction := func(c color, shortcut string) con.Action {
+		title := strings.ReplaceAll(strings.ToLower(c.name), " ", "-")
+		execute := func() {
+			newModel := m.colorPlaceholder.GetModel().(placeholder.PlaceholderModel).SetColor(lipgloss.Color(c.hex))
+			m.colorPlaceholder.SetModel(newModel)
+		}
+		action := con.NewDefaultAction(title,
+			"Set color to "+c.name,
+			shortcut,
+			m.colorPlaceholder,
+			execute,
+			nil,
+		)
+		return action
+	}
+	for i, clr := range colors {
+		shortcut := string(shortcutIndices[utils.WrapInt(i, 0, len(shortcutIndices))])
+		output = append(output, getColorAction(clr, shortcut))
+	}
+	return
+}
+
 func GetColorMakerModel() (output ColorMakerModel) {
 	// initialize action list
 	actionsList := GetActionList(list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0))
@@ -69,6 +152,16 @@ func GetColorMakerModel() (output ColorMakerModel) {
 		},
 	)
 	output.container = container
+	// set actions associated with each component to the defaults defined above
+	output.actionsList.SetActions(output.defaultActionsForActionsList())
+	output.colorPlaceholder.SetActions(output.defaultActionsForColorPlaceholder())
+	output.actionBar.SetActionDelegate(
+		func() (newActions []con.Action) {
+			newActions = append(newActions, output.actionsList.GetActions()...)
+			newActions = append(newActions, output.colorPlaceholder.GetActions()...)
+			return
+		},
+	)
 	return output
 }
 
@@ -107,6 +200,7 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.actionBarIsFocused {
 				return updateActionBar(message)
 			} else {
+				m.actionBar.HandleShortcuts(msg.String())
 				return updateContainer(message)
 			}
 		}

@@ -80,6 +80,8 @@ type Component struct {
 	showShortcut bool
 	// The corner of the component in which to render the shortcut
 	shortcutPosition int
+	// Any Actions associated with the component
+	actions []Action
 }
 
 func ComponentFromModel(model tea.Model) *Component {
@@ -244,7 +246,15 @@ func (m Component) GetShortcutPosition() int {
 func (m *Component) SetShortcutPosition(shortcutPosition int) *Component {
 	m.shortcutPosition = shortcutPosition
 	return m
+}
 
+func (m Component) GetActions() []Action {
+	return m.actions
+}
+
+func (m *Component) SetActions(actions []Action) *Component {
+	m.actions = actions
+	return m
 }
 
 func (m Component) IsShowingTitle() bool {
