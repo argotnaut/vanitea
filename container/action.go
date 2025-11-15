@@ -1,16 +1,18 @@
 package container
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Action interface {
 	/*
 		Allows a caller to execute the action
 	*/
-	Execute()
+	Execute() Action
 	/*
 		Allows a caller to reverse an action, if possible
 	*/
-	Undo()
+	Undo() Action
 	/*
 		Returns the name of the action
 	*/
@@ -39,8 +41,8 @@ type DefaultAction struct {
 	undo        func()
 }
 
-func NewDefaultAction(name string, description string, shortcut string, target *Component, execute func(), undo func()) DefaultAction {
-	return DefaultAction{
+func NewDefaultAction(name string, description string, shortcut string, target *Component, execute func(), undo func()) *DefaultAction {
+	return &DefaultAction{
 		name:        name,
 		description: description,
 		shortcut:    shortcut,
@@ -50,15 +52,17 @@ func NewDefaultAction(name string, description string, shortcut string, target *
 	}
 }
 
-func (m DefaultAction) Execute() {
+func (m DefaultAction) Execute() Action {
 	if m.execute != nil {
 		m.execute()
 	}
+	return m
 }
-func (m DefaultAction) Undo() {
+func (m DefaultAction) Undo() Action {
 	if m.undo != nil {
 		m.undo()
 	}
+	return m
 }
 func (m DefaultAction) GetName() string {
 	return m.name

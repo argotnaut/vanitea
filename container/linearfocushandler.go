@@ -11,17 +11,17 @@ const (
 	FOCUS_BACKWARD = "shift+tab"
 )
 
-type KeyMap struct {
+type LinearFocusKeyMap struct {
 	FocusBackward []string
 	FocusForward  []string
 }
 
-func (km KeyMap) Contains(input string) bool {
+func (km LinearFocusKeyMap) Contains(input string) bool {
 	return slices.Contains(km.FocusBackward, input) || slices.Contains(km.FocusForward, input)
 }
 
-func NewDefaultKeyMap() KeyMap {
-	return KeyMap{
+func NewDefaultLinearFocusKeyMap() LinearFocusKeyMap {
+	return LinearFocusKeyMap{
 		FocusForward:  []string{"tab"},
 		FocusBackward: []string{"shift+tab"},
 	}
@@ -35,7 +35,7 @@ type linearFocusHandler struct {
 	// A pointer to the currently focused component
 	focusedComponent *Component
 	// The key combinations that can be pressed to affect focus
-	keyMap KeyMap
+	keyMap LinearFocusKeyMap
 	// The container whose components' focus is being handled
 	componentDelegate func() []*Component
 	// Whether to ignore focus for the child components of those provided by componentDelegate
@@ -43,16 +43,16 @@ type linearFocusHandler struct {
 }
 
 func NewDefaultLinearFocusHandler(delegate func() []*Component) linearFocusHandler {
-	return NewLinearFocusHandler(NewDefaultKeyMap(), delegate)
+	return NewLinearFocusHandler(NewDefaultLinearFocusKeyMap(), delegate)
 }
 
 func NewDefaultShallowLinearFocusHandler(delegate func() []*Component) linearFocusHandler {
-	lfh := NewLinearFocusHandler(NewDefaultKeyMap(), delegate)
+	lfh := NewLinearFocusHandler(NewDefaultLinearFocusKeyMap(), delegate)
 	lfh.shallow = true
 	return lfh
 }
 
-func NewLinearFocusHandler(keyMap KeyMap, delegate func() []*Component) linearFocusHandler {
+func NewLinearFocusHandler(keyMap LinearFocusKeyMap, delegate func() []*Component) linearFocusHandler {
 	lfh := linearFocusHandler{
 		keyMap:            keyMap,
 		componentDelegate: delegate,

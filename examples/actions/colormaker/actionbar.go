@@ -14,6 +14,7 @@ import (
 type ActionBarModel struct {
 	input           textinput.Model
 	actionsDelegate func() []con.Action
+	actionStack     *con.ActionStack
 }
 
 func (m ActionBarModel) getSuggestionsFromActions() (output []string) {
@@ -37,7 +38,9 @@ func GetActionBarModel() *ActionBarModel {
 	input.Width = 20
 	input.ShowSuggestions = true
 
-	actionBar := &ActionBarModel{}
+	actionBar := &ActionBarModel{
+		actionStack: con.GetActionStack(),
+	}
 
 	return actionBar.SetInput(input)
 }
@@ -53,12 +56,18 @@ func (m *ActionBarModel) SetInput(input textinput.Model) *ActionBarModel {
 	return m
 }
 
-func (m ActionBarModel) HandleShortcuts(shortcut string) {
+func (m *ActionBarModel) HandleShortcuts(shortcut string) *ActionBarModel {
+	if m.actionStack.IsActionStackKey(shortcut) {
+		m.actionStack.HandleShortcuts(shortcut)
+		return m
+	}
+
 	for _, action := range m.actionsDelegate() {
 		if shortcut == action.GetShortcut() {
-			action.Execute()
+			m.actionStack.Execute(action)
 		}
 	}
+	return m
 }
 
 func (m ActionBarModel) getActionsFromSuggestions() (output []con.Action) {
@@ -89,7 +98,7 @@ func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				val := m.input.Value()
 				for _, action := range m.actionsDelegate() {
 					if action.GetName() == val {
-						action.Execute()
+						m.actionStack.Execute(action)
 						m.input.Reset()
 					}
 				}

@@ -1,8 +1,6 @@
 package colormaker
 
 import (
-	"strings"
-
 	con "github.com/argotnaut/vanitea/container"
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
@@ -48,21 +46,22 @@ func (cmm ColorMakerModel) GetActionsList() actionList {
 }
 
 func (m ColorMakerModel) defaultActionsForActionsList() []con.Action {
+	toggleHidden := func() {
+		fullSize := m.container.GetFullContainerSize()
+		m.actionsList.ToggleHidden()
+		newContainerModel, _ := m.container.Update(
+			m.container.ResizeComponents(fullSize),
+		)
+		*(m.container) = newContainerModel.(lc.LinearContainerModel)
+	}
 	return []con.Action{
 		con.NewDefaultAction(
 			"toggle-hidden",
 			"Show/hide the actions list view",
 			"ctrl+h",
 			m.actionsList,
-			func() {
-				fullSize := m.container.GetFullContainerSize()
-				m.actionsList.ToggleHidden()
-				newContainerModel, _ := m.container.Update(
-					m.container.ResizeComponents(fullSize),
-				)
-				*(m.container) = newContainerModel.(lc.LinearContainerModel)
-			},
-			nil,
+			toggleHidden,
+			toggleHidden,
 		),
 	}
 }
@@ -104,25 +103,10 @@ func (m ColorMakerModel) defaultActionsForColorPlaceholder() (output []con.Actio
 		{name: "Powder blue", hex: "#B0E0E6"},
 		{name: "Razzmatazz", hex: "#E3256B"},
 	}
-	shortcutIndices := "1234567890abcdefghijklmnopqrstuvwxyz"
-	getColorAction := func(c color, shortcut string) con.Action {
-		title := strings.ReplaceAll(strings.ToLower(c.name), " ", "-")
-		execute := func() {
-			newModel := m.colorPlaceholder.GetModel().(placeholder.PlaceholderModel).SetColor(lipgloss.Color(c.hex))
-			m.colorPlaceholder.SetModel(newModel)
-		}
-		action := con.NewDefaultAction(title,
-			"Set color to "+c.name,
-			shortcut,
-			m.colorPlaceholder,
-			execute,
-			nil,
-		)
-		return action
-	}
+	shortcutIndices := "1234567890abcdefghijklmnopqrstuvw"
 	for i, clr := range colors {
 		shortcut := string(shortcutIndices[utils.WrapInt(i, 0, len(shortcutIndices))])
-		output = append(output, getColorAction(clr, shortcut))
+		output = append(output, NewSetColorAction(clr.name, lipgloss.Color(clr.hex), shortcut, m.colorPlaceholder))
 	}
 	return
 }

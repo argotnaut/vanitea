@@ -1,4 +1,4 @@
-package vanitea
+package placeholder
 
 import (
 	"strings"
@@ -74,9 +74,13 @@ func (m PlaceholderModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m PlaceholderModel) SetColor(color lipgloss.Color) PlaceholderModel {
+func (m PlaceholderModel) SetColor(color lipgloss.TerminalColor) PlaceholderModel {
 	m.style = lipgloss.NewStyle().Background(color)
 	return m
+}
+
+func (m PlaceholderModel) GetColor() lipgloss.TerminalColor {
+	return m.style.GetBackground()
 }
 
 func paintEnds(s string) string {
