@@ -221,7 +221,7 @@ func (m LinearContainerModel) calculateRemainingSpace(
 Resizes the components according to their dimensions and the dimensions of the
 LinearContainerModel
 */
-func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg) tea.Cmd {
+func (m LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg) tea.Cmd {
 	// holds the sizes of every component that's getting resized (update this every time they change)
 	var sizes []tea.WindowSizeMsg
 	// holds the indices of the remaining components that can still grow
@@ -298,7 +298,7 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 	var cmds []tea.Cmd
 	for i := range len(sizes) {
 		component := m.GetComponent(i)
-		cmd := resizeComponentModelForStyle(component, sizes[i], *m)
+		cmd := resizeComponentModelForStyle(component, sizes[i], m)
 		cmds = append(cmds, cmd)
 	}
 	// DEBUG
@@ -335,7 +335,7 @@ func (m LinearContainerModel) ViewComponent(model tea.Model, component *con.Comp
 	if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
 		// if component is a LinearContainerModel, make sure it gets m's FocusHandler
 		lc.SetFocusHandler(
-			lc.focusHandler.SetFocusedComponent(
+			lc.GetFocusHandler().SetFocusedComponent(
 				m.GetFocusHandler().GetFocusedComponent(),
 			),
 		)
