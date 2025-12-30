@@ -11,12 +11,24 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+/*
+A TUI element that allows users to type action
+names into a text input in order to search for and
+execute actions
+*/
 type ActionBarModel struct {
-	input           textinput.Model
+	// The text input model in which users can type action names
+	input textinput.Model
+	// The function used to get the list of available actions
 	actionsDelegate func() []con.Action
-	actionStack     *con.ActionStack
+	// Manages the undo/redo stacks when handling action execution
+	actionStack *con.ActionStack
 }
 
+/*
+Returns the list of available action names that could tab-complete the
+current content of the text input
+*/
 func (m ActionBarModel) getSuggestionsFromActions() (output []string) {
 	if m.actionsDelegate == nil {
 		return
@@ -27,6 +39,9 @@ func (m ActionBarModel) getSuggestionsFromActions() (output []string) {
 	return
 }
 
+/*
+Instantiates a new ActionBarModel with default settings
+*/
 func GetActionBarModel() *ActionBarModel {
 	input := textinput.New()
 	input.Placeholder = "action"
@@ -45,17 +60,27 @@ func GetActionBarModel() *ActionBarModel {
 	return actionBar.SetInput(input)
 }
 
+/*
+Sets the function used by ActionBarModel to get the list of available actions
+*/
 func (m *ActionBarModel) SetActionDelegate(delegate func() []con.Action) *ActionBarModel {
 	m.actionsDelegate = delegate
 	m.input.SetSuggestions(m.getSuggestionsFromActions())
 	return m
 }
 
+/*
+Sets the model for the ActionBarModel's text input
+*/
 func (m *ActionBarModel) SetInput(input textinput.Model) *ActionBarModel {
 	m.input = input
 	return m
 }
 
+/*
+Handles the given keyboard shortcut string, whether it's an action's
+shortcut or a shortcut for the action bar itself
+*/
 func (m *ActionBarModel) HandleShortcuts(shortcut string) *ActionBarModel {
 	if m.actionStack.IsActionStackKey(shortcut) {
 		m.actionStack.HandleShortcuts(shortcut)
@@ -70,6 +95,10 @@ func (m *ActionBarModel) HandleShortcuts(shortcut string) *ActionBarModel {
 	return m
 }
 
+/*
+Returns the list of actions whose names could be used to
+autocomplete the current text in the ActionBarModel's text input
+*/
 func (m ActionBarModel) getActionsFromSuggestions() (output []con.Action) {
 	if m.actionsDelegate == nil {
 		return
@@ -84,6 +113,9 @@ func (m ActionBarModel) getActionsFromSuggestions() (output []con.Action) {
 	return
 }
 
+/*
+Initializes the ActionBarModel's text input
+*/
 func (m ActionBarModel) Init() tea.Cmd {
 	return textinput.Blink // for the cursor in the text input
 }

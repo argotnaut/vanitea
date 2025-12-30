@@ -6,6 +6,9 @@ import (
 )
 
 func main() {
+	/*
+		Runs the action example code from colorMaker.go
+	*/
 	colorMaker := cm.GetColorMakerModel()
 	_, err := tea.NewProgram(colorMaker, tea.WithAltScreen()).Run()
 	if err != nil {

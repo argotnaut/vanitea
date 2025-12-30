@@ -9,6 +9,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+/*
+Represents an action in the example app for
+setting the color of the color preview component
+*/
 type SetColorAction struct {
 	name        string
 	description string
@@ -18,6 +22,16 @@ type SetColorAction struct {
 	newColor    lipgloss.TerminalColor
 }
 
+/*
+Instantiates a SetColorAction with the given properties
+
+name: string - The name by which the user can invoke the action
+color: lipgloss.TeminalColor - The new color to set the color preview component to
+shortcut: string - A string representing the keyboard shortcut that will execute the action
+target: *con.Component - A pointer to the con.Component whose color will be changed
+
+	(in this case, the color preview component in the example)
+*/
 func NewSetColorAction(name string, color lipgloss.TerminalColor, shortcut string, target *con.Component) *SetColorAction {
 	title := strings.ReplaceAll(strings.ToLower(name), " ", "-")
 	return &SetColorAction{
@@ -29,6 +43,9 @@ func NewSetColorAction(name string, color lipgloss.TerminalColor, shortcut strin
 	}
 }
 
+/*
+Changes the color of the target component to the action's newColor
+*/
 func (m SetColorAction) Execute() con.Action {
 	if m.target != nil {
 		if colorPreview, ok := (*m.target).GetModel().(place.PlaceholderModel); ok {
@@ -42,6 +59,12 @@ func (m SetColorAction) Execute() con.Action {
 	}
 	return m
 }
+
+/*
+Undoes the effect of the Execute() function by changing the color of
+the target component to the color this action was replacing when
+Execute() was run
+*/
 func (m SetColorAction) Undo() con.Action {
 	if m.target != nil {
 		if colorPreview, ok := (*m.target).GetModel().(place.PlaceholderModel); ok {

@@ -1,3 +1,10 @@
+/*
+This code (used in actions.go) serves as a simple example app to demonstrate how actions
+can be used. To use it, run actions.go and type an alphanumeric key to change the preview
+color. Use the actionBar with 'ctrl+/' and start typeing a color name to see completions,
+use 'ctrl+n' to scroll through suggestions, hit 'tab' to tab-complete suggestions, and hit
+'enter' to to run the action
+*/
 package colormaker
 
 import (
@@ -9,6 +16,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+/*
+The overall model for the example app
+*/
 type ColorMakerModel struct {
 	/*
 		The view displaying the current color
@@ -36,6 +46,13 @@ func (cmm ColorMakerModel) GetColorPlaceholder() placeholder.PlaceholderModel {
 	return cmm.colorPlaceholder.GetModel().(placeholder.PlaceholderModel)
 }
 
+/*
+Based on the below list of colors and their names, this function returns
+a slice of con.Actions, each of which sets the ColorMakerModel's colorPlaceholder
+to a specific color.
+
+(This is a convenience function used when initializing the ColorMakerModel below)
+*/
 func (m ColorMakerModel) defaultActionsForColorPlaceholder() (output []con.Action) {
 	type color struct {
 		name string
@@ -81,6 +98,9 @@ func (m ColorMakerModel) defaultActionsForColorPlaceholder() (output []con.Actio
 	return
 }
 
+/*
+Instantiates a ColorMakerModel to be used for the whole example app
+*/
 func GetColorMakerModel() (output ColorMakerModel) {
 	// initialize color placeholder view
 	output.currentColor = "#648fff"
@@ -110,13 +130,19 @@ func GetColorMakerModel() (output ColorMakerModel) {
 	return output
 }
 
+/*
+Call the Init functions of all the child components (including the
+actionBar, which will need it for the cursor to blink)
+*/
 func (m ColorMakerModel) Init() tea.Cmd {
 	return tea.Batch(m.container.Init(), m.actionBar.Init())
 }
 
 func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-	message := msg
+	var cmds []tea.Cmd // every Update function that produces a tea.Cmd will append it to this, and they'll all get batched together and returned at the end
+	message := msg     // 'message' is used to alter window resizing messages
+
+	// two convenience functions for updating the ColorMakerModel's two top-level child components
 	updateActionBar := func(message tea.Msg) (ColorMakerModel, tea.Cmd) {
 		newActionBarModel, cmd := m.actionBar.Update(message)
 		*(m.actionBar) = newActionBarModel.(ActionBarModel)
@@ -133,7 +159,8 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "ctrl+_":
+		case "ctrl+_": // This ends up being 'ctrl+/' on some keyboards
+			// switch focus to or from actionBar
 			if m.actionBarIsFocused {
 				m.actionBar.input.Blur()
 			} else {
@@ -150,6 +177,10 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tea.WindowSizeMsg:
+		// The isn't part of the main LinearContainer because it shouldn't
+		// be focusable except by the above key combination, so the height
+		// of this tea.WindowSizeMsg is reduced to make room below for the
+		// actionBar, which will always have a height of 1
 		message = tea.WindowSizeMsg{
 			Height: max(0, msg.Height-1),
 			Width:  msg.Width,
