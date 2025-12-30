@@ -10,27 +10,40 @@ import (
 	utils "github.com/argotnaut/vanitea/utils"
 )
 
+/*
+A view that renders components as a stack (with top components obscuring bottom ones)
+*/
 type StackContainerModel struct {
-	focusHandler        con.FocusHandler
-	componentComponents []*con.Component
-	direction           int
+	// The handler that controls which component has focus
+	focusHandler con.FocusHandler
+	// The components to be rendered in the stack
+	childComponents []*con.Component
 }
 
+/*
+Creates a stack container with no child components and the default focus handler
+*/
 func NewStackContainer() *StackContainerModel {
 	lc := StackContainerModel{}
 	lc.SetFocusHandler(con.NewDefaultLinearFocusHandler(lc.GetComponents))
 	return &lc
 }
 
+/*
+Creates a stack container with the given child components and the default focus handler
+*/
 func NewStackContainerFromComponents(components []*con.Component) *StackContainerModel {
 	newStackContainer := NewStackContainer()
-	newStackContainer.componentComponents = components
+	newStackContainer.childComponents = components
 	newStackContainer.SetFocusHandler(
 		newStackContainer.GetFocusHandler(),
 	)
 	return newStackContainer
 }
 
+/*
+Calls the Init functions of all the child components' models
+*/
 func (m StackContainerModel) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	for _, component := range m.GetComponents() {
@@ -39,12 +52,18 @@ func (m StackContainerModel) Init() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+/*
+Returns the StackContainerModel's childComponents
+*/
 func (m StackContainerModel) GetComponents() []*con.Component {
-	return m.componentComponents
+	return m.childComponents
 }
 
+/*
+Returns the StackContainerModel's non-hidden child components
+*/
 func (m StackContainerModel) GetVisibleComponents() (output []*con.Component) {
-	for _, component := range m.componentComponents {
+	for _, component := range m.childComponents {
 		if !component.IsHidden() {
 			output = append(output, component)
 		}
@@ -52,14 +71,23 @@ func (m StackContainerModel) GetVisibleComponents() (output []*con.Component) {
 	return
 }
 
+/*
+Sets the StackContainerModel's focus handler to the given focus handler
+*/
 func (m *StackContainerModel) SetFocusHandler(handler con.FocusHandler) {
 	m.focusHandler = handler.SetComponentDelegate(m.GetComponents)
 }
 
+/*
+Returns the StackContainerModel's focus handler
+*/
 func (m StackContainerModel) GetFocusHandler() con.FocusHandler {
 	return m.focusHandler
 }
 
+/*
+Returns the component at the given index in the StackContainerModel's slice of child components
+*/
 func (m StackContainerModel) GetComponent(idx int) *con.Component {
 	return m.GetComponents()[idx]
 }
@@ -77,6 +105,9 @@ func (m StackContainerModel) GetComponentStyle(component *con.Component) lipglos
 	return component.GetBorderStyle()
 }
 
+/*
+Returns the style of the component at the given index in the StackContainerModel's list of child components
+*/
 func (m StackContainerModel) GetComponentStyleByIndex(componentIdx int) lipgloss.Style {
 	return m.GetComponentStyle(m.GetComponent(componentIdx))
 }
@@ -102,6 +133,9 @@ func (m StackContainerModel) adjustComponentSizeToLimits(componentIdx int, conta
 	return output
 }
 
+/*
+Resizes the given component's model based on the width/height of it's frame
+*/
 func resizeComponentModelForStyle(component *con.Component, size tea.WindowSizeMsg, m StackContainerModel) tea.Cmd {
 	model, cmd := component.GetModel().Update(tea.WindowSizeMsg{
 		Width:  size.Width - m.GetComponentStyle(component).GetHorizontalFrameSize(),
@@ -125,7 +159,10 @@ func (m *StackContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg) 
 	return nil
 }
 
-func (m StackContainerModel) ViewComponent(model tea.Model, component *con.Component) string {
+/*
+Renders the given component
+*/
+func (m StackContainerModel) ViewComponent(component *con.Component) string {
 	if lc, isLC := component.GetModel().(linear.LinearContainerModel); isLC {
 		// if component is a StackContainerModel, make sure it gets m's FocusHandler
 		lc.SetFocusHandler(
@@ -173,7 +210,7 @@ func (m StackContainerModel) View() (s string) {
 	for _, component := range m.GetVisibleComponents() {
 		viewStack = utils.PlaceStacked(
 			viewStack,
-			m.ViewComponent(component.GetModel(), component),
+			m.ViewComponent(component),
 			utils.CENTER,
 			0,
 			0,
