@@ -5,16 +5,11 @@ import (
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
 	"github.com/argotnaut/vanitea/utils"
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type ColorMakerModel struct {
-	/*
-		The list of actions performed on the left side of the view
-	*/
-	actionsList *con.Component
 	/*
 		The view displaying the current color
 	*/
@@ -39,31 +34,6 @@ type ColorMakerModel struct {
 
 func (cmm ColorMakerModel) GetColorPlaceholder() placeholder.PlaceholderModel {
 	return cmm.colorPlaceholder.GetModel().(placeholder.PlaceholderModel)
-}
-
-func (cmm ColorMakerModel) GetActionsList() actionList {
-	return cmm.actionsList.GetModel().(actionList)
-}
-
-func (m ColorMakerModel) defaultActionsForActionsList() []con.Action {
-	toggleHidden := func() {
-		fullSize := m.container.GetFullContainerSize()
-		m.actionsList.ToggleHidden()
-		newContainerModel, _ := m.container.Update(
-			m.container.ResizeComponents(fullSize),
-		)
-		*(m.container) = newContainerModel.(lc.LinearContainerModel)
-	}
-	return []con.Action{
-		con.NewDefaultAction(
-			"toggle-hidden",
-			"Show/hide the actions list view",
-			"ctrl+h",
-			m.actionsList,
-			toggleHidden,
-			toggleHidden,
-		),
-	}
 }
 
 func (m ColorMakerModel) defaultActionsForColorPlaceholder() (output []con.Action) {
@@ -112,12 +82,6 @@ func (m ColorMakerModel) defaultActionsForColorPlaceholder() (output []con.Actio
 }
 
 func GetColorMakerModel() (output ColorMakerModel) {
-	// initialize action list
-	actionsList := GetActionList(list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0))
-	actionsList.list.Title = "Actions"
-	output.actionsList = con.ComponentFromModel(
-		actionsList,
-	).SetMaximumWidth(25)
 	// initialize color placeholder view
 	output.currentColor = "#648fff"
 	initialColor := lipgloss.NewStyle().Background(lipgloss.Color(output.currentColor))
@@ -131,17 +95,14 @@ func GetColorMakerModel() (output ColorMakerModel) {
 	// initialize main linear container (contains all the components except the action bar at the bottom)
 	container := lc.NewLinearContainerFromComponents(
 		[]*con.Component{
-			output.actionsList.SetTitle("actions stack").SetShowTitle(true),      // actions stack on the left of the view
 			output.colorPlaceholder.SetTitle("color preview").SetShowTitle(true), // current color on the right of the view
 		},
 	)
 	output.container = container
 	// set actions associated with each component to the defaults defined above
-	output.actionsList.SetActions(output.defaultActionsForActionsList())
 	output.colorPlaceholder.SetActions(output.defaultActionsForColorPlaceholder())
 	output.actionBar.SetActionDelegate(
 		func() (newActions []con.Action) {
-			newActions = append(newActions, output.actionsList.GetActions()...)
 			newActions = append(newActions, output.colorPlaceholder.GetActions()...)
 			return
 		},
@@ -199,14 +160,6 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	_, cmd = updateActionBar(message)
 	cmds = append(cmds, cmd)
-
-	// change the placeholder's color if the selected color has changed
-	if selected := m.GetActionsList().list.SelectedItem(); selected != nil && selected.FilterValue() != m.currentColor {
-		m.currentColor = m.GetActionsList().list.SelectedItem().FilterValue()
-		m.colorPlaceholder.SetModel(
-			m.GetColorPlaceholder().SetColor(lipgloss.Color(m.currentColor)),
-		)
-	}
 
 	return m, tea.Batch(cmds...)
 }
