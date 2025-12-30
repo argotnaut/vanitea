@@ -42,6 +42,9 @@ var NO_BORDER_STYLE = lipgloss.NewStyle().BorderStyle(
 	},
 )
 
+/*
+Manages the rendering and behavior of a bubbletea TUI component within a Container
+*/
 type Component struct {
 	// The bubbletea model for the TUI component
 	model tea.Model
@@ -84,6 +87,9 @@ type Component struct {
 	actions []Action
 }
 
+/*
+Instantiates a Component with the given model and default settings
+*/
 func ComponentFromModel(model tea.Model) *Component {
 	return &Component{
 		model:              model,
@@ -100,6 +106,9 @@ func ComponentFromModel(model tea.Model) *Component {
 	}
 }
 
+/*
+Returns the tea.Model for the Component
+*/
 func (m Component) GetModel() tea.Model {
 	if m.model == nil {
 		return nil
@@ -107,20 +116,32 @@ func (m Component) GetModel() tea.Model {
 	return m.model
 }
 
+/*
+Sets the Component's tea.Model to the given model
+*/
 func (m *Component) SetModel(model tea.Model) *Component {
 	m.model = model
 	return m
 }
 
+/*
+Returns the resizing priority for the Component
+*/
 func (m Component) GetPriority() int {
 	return m.priority
 }
 
+/*
+Sets the resizing priority for the Component
+*/
 func (m *Component) SetPriority(priority int) *Component {
 	m.priority = priority
 	return m
 }
 
+/*
+Returns the Component's maximum allowed render width
+*/
 func (m Component) GetMaximumWidth() int {
 	if m.IsHidden() {
 		return 0
@@ -128,11 +149,17 @@ func (m Component) GetMaximumWidth() int {
 	return m.maximumWidth
 }
 
+/*
+Sets the Component's maximum allowed render width
+*/
 func (m *Component) SetMaximumWidth(width int) *Component {
 	m.maximumWidth = width
 	return m
 }
 
+/*
+Returns the Component's maximum allowed render heihgt
+*/
 func (m Component) GetMaximumHeight() int {
 	if m.IsHidden() {
 		return 0
@@ -140,11 +167,17 @@ func (m Component) GetMaximumHeight() int {
 	return m.maximumHeight
 }
 
+/*
+Sets the Component's maximum allowed render height
+*/
 func (m *Component) SetMaximumHeight(height int) *Component {
 	m.maximumHeight = height
 	return m
 }
 
+/*
+Returns the Component's minimum allowed render width
+*/
 func (m Component) GetMinimumWidth() int {
 	if m.IsHidden() {
 		return 0
@@ -152,38 +185,62 @@ func (m Component) GetMinimumWidth() int {
 	return m.minimumWidth
 }
 
+/*
+Sets the Component's minimum allowed render width
+*/
 func (m *Component) SetMinimumWidth(width int) *Component {
 	m.minimumWidth = width
 	return m
 }
 
+/*
+Returns the Component's minimum allowed render height
+*/
 func (m Component) GetMinimumHeight() int {
 	return m.minimumHeight
 }
 
+/*
+Sets the Component's minimum allowed render height
+*/
 func (m *Component) SetMinimumHeight(height int) *Component {
 	m.minimumHeight = height
 	return m
 }
 
+/*
+Returns the Component's border style when it is not in focus
+*/
 func (m Component) GetBorderStyle() lipgloss.Style {
 	return m.borderStyle
 }
 
+/*
+Sets the lipgloss.Style of the Component's border when it is not in focus
+*/
 func (m *Component) SetBorderStyle(style lipgloss.Style) *Component {
 	m.borderStyle = style
 	return m
 }
 
+/*
+Gets the lipgloss.Style of the Component's border when it is in focus
+*/
 func (m Component) GetFocusBorderStyle() lipgloss.Style {
 	return m.focusedBorderStyle
 }
 
+/*
+Sets the lipgloss.Style of the Component's border when it is in focus
+*/
 func (m *Component) SetFocusBorderStyle(style lipgloss.Style) *Component {
 	m.focusedBorderStyle = style
 	return m
 }
 
+/*
+Returns whether the component is capable of receiving focus
+*/
 func (m Component) IsFocusable() bool {
 	if m.IsHidden() {
 		return false
@@ -191,6 +248,9 @@ func (m Component) IsFocusable() bool {
 	return m.focusable
 }
 
+/*
+Sets whether the component is capable of receiving focus
+*/
 func (m *Component) SetFocusable(focusable bool) *Component {
 	m.focusable = focusable
 	return m
