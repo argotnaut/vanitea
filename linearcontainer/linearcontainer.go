@@ -301,9 +301,6 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 		cmd := resizeComponentModelForStyle(component, sizes[i], *m)
 		cmds = append(cmds, cmd)
 	}
-	// DEBUG
-	// // make sure the correct component had focus
-	// m.focusHandler = m.GetFocusHandler().UpdateFocusedComponent()
 	return tea.Batch(cmds...)
 }
 
