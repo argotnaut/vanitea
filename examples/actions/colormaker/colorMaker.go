@@ -8,6 +8,7 @@ use 'ctrl+n' to scroll through suggestions, hit 'tab' to tab-complete suggestion
 package colormaker
 
 import (
+	actionbar "github.com/argotnaut/vanitea/actionbar"
 	con "github.com/argotnaut/vanitea/container"
 	lc "github.com/argotnaut/vanitea/linearcontainer"
 	placeholder "github.com/argotnaut/vanitea/placeholder"
@@ -35,7 +36,7 @@ type ColorMakerModel struct {
 	/*
 		The component from which a user can execute actions
 	*/
-	actionBar *ActionBarModel
+	actionBar *actionbar.ActionBarModel
 	/*
 		ActionBar is focused
 	*/
@@ -110,8 +111,8 @@ func GetColorMakerModel() (output ColorMakerModel) {
 		colorPlaceholder,
 	)
 	// initialize action bar
-	output.actionBar = GetActionBarModel()
-	output.actionBar.input.Blur()
+	output.actionBar = actionbar.GetActionBarModel()
+	output.actionBar.Blur()
 	// initialize main linear container (contains all the components except the action bar at the bottom)
 	container := lc.NewLinearContainerFromComponents(
 		[]*con.Component{
@@ -145,7 +146,7 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// two convenience functions for updating the ColorMakerModel's two top-level child components
 	updateActionBar := func(message tea.Msg) (ColorMakerModel, tea.Cmd) {
 		newActionBarModel, cmd := m.actionBar.Update(message)
-		*(m.actionBar) = newActionBarModel.(ActionBarModel)
+		*(m.actionBar) = newActionBarModel.(actionbar.ActionBarModel)
 		return m, cmd
 	}
 	updateContainer := func(message tea.Msg) (ColorMakerModel, tea.Cmd) {
@@ -162,9 +163,9 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+_": // This ends up being 'ctrl+/' on some keyboards
 			// switch focus to or from actionBar
 			if m.actionBarIsFocused {
-				m.actionBar.input.Blur()
+				m.actionBar.Blur()
 			} else {
-				m.actionBar.input.Focus()
+				m.actionBar.Focus()
 			}
 			m.actionBarIsFocused = !m.actionBarIsFocused
 			return m, nil
