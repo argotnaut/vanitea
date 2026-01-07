@@ -1,6 +1,8 @@
 package actionbar
 
 import (
+	"math"
+
 	con "github.com/argotnaut/vanitea/container"
 	"github.com/argotnaut/vanitea/utils"
 	tea "github.com/charmbracelet/bubbletea"
@@ -82,7 +84,7 @@ func (m ActionListModel) View() string {
 		return ""
 	}
 	const COLUMN_WIDTH = 30
-	itemsPerRow := m.size.Width / COLUMN_WIDTH
+	itemsPerRow := int(math.Ceil(float64(m.size.Width) / float64(COLUMN_WIDTH)))
 	outputTable := table.New().
 		Border(lipgloss.HiddenBorder()).
 		Width(m.size.Width).
