@@ -1,8 +1,6 @@
 package actionbar
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	con "github.com/argotnaut/vanitea/container"
@@ -69,11 +67,6 @@ func NewActionBarModel(actionsDelegate func() []con.Action) *ActionBarModel {
 		for _, match := range matches {
 			output = append(output, allActions[match.Index])
 		}
-		fmt.Fprintf(os.Stderr, "input value: %s\n", input.Value())
-		fmt.Fprintf(os.Stderr, "len of all actions: %d\n", len(allActions))
-		fmt.Fprintf(os.Stderr, "len of all actions names: %d\n", len(allActions.Names()))
-		fmt.Fprintf(os.Stderr, "len of matches: %d\n", len(matches))
-		fmt.Fprintf(os.Stderr, "len of output: %d\n", len(output))
 		return output
 	})
 
