@@ -35,6 +35,15 @@ type Action interface {
 	String() string
 }
 
+type Actions []Action
+
+func (actions Actions) Names() (output []string) {
+	for _, action := range actions {
+		output = append(output, action.GetName())
+	}
+	return
+}
+
 /*
 A type for simple actions that just do an operation on a component, and will need a name, shortcut, etc.
 */

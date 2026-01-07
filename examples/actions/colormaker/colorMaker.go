@@ -110,9 +110,6 @@ func GetColorMakerModel() (output ColorMakerModel) {
 	output.colorPlaceholder = con.ComponentFromModel(
 		colorPlaceholder,
 	)
-	// initialize action bar
-	output.actionBar = actionbar.GetActionBarModel()
-	output.actionBar.Blur()
 	// initialize main linear container (contains all the components except the action bar at the bottom)
 	container := lc.NewLinearContainerFromComponents(
 		[]*con.Component{
@@ -122,12 +119,15 @@ func GetColorMakerModel() (output ColorMakerModel) {
 	output.container = container
 	// set actions associated with each component to the defaults defined above
 	output.colorPlaceholder.SetActions(output.defaultActionsForColorPlaceholder())
-	output.actionBar.SetActionDelegate(
+	// initialize action bar
+	output.actionBar = actionbar.NewActionBarModel(
 		func() (newActions []con.Action) {
 			newActions = append(newActions, output.colorPlaceholder.GetActions()...)
 			return
 		},
 	)
+	output.actionBar.Blur()
+
 	return output
 }
 
@@ -197,9 +197,11 @@ func (m ColorMakerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ColorMakerModel) View() string {
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		m.container.View(),
+	return utils.PlaceStacked(
+		m.container.View()+"\n",
 		m.actionBar.View(),
+		utils.BOTTOM_LEFT,
+		0,
+		0,
 	)
 }

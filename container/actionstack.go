@@ -48,7 +48,7 @@ type ActionStack struct {
 /*
 Instantiates the default ActionStack
 */
-func GetActionStack() *ActionStack {
+func NewActionStack() *ActionStack {
 	return &ActionStack{
 		keyMap: NewDefaultActionStackKeyMap(),
 	}
