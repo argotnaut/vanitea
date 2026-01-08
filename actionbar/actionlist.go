@@ -2,6 +2,7 @@ package actionbar
 
 import (
 	"math"
+	"strings"
 
 	con "github.com/argotnaut/vanitea/container"
 	"github.com/argotnaut/vanitea/utils"
@@ -17,6 +18,8 @@ const (
 	LEFT_ARROW  = "left"
 	RIGHT_ARROW = "right"
 )
+
+var DEFAULT_TABLE_STYLE = lipgloss.HiddenBorder()
 
 type ActionListModel struct {
 	actionsDelegate func() []con.Action
@@ -84,13 +87,23 @@ func (m ActionListModel) View() string {
 		return ""
 	}
 	const COLUMN_WIDTH = 30
+	outputBorderStyle := lipgloss.NewStyle().
+		BorderStyle(
+			lipgloss.RoundedBorder(),
+		).
+		BorderForeground(
+			lipgloss.Color("61"),
+		)
+	outputBorderStyle = outputBorderStyle.Width(
+		m.size.Width - outputBorderStyle.GetVerticalFrameSize(),
+	)
 	itemsPerRow := int(math.Ceil(float64(m.size.Width) / float64(COLUMN_WIDTH)))
-	outputTable := table.New().
-		Border(lipgloss.HiddenBorder()).
+	outputTable := table.New().Border(con.NO_BORDER_STYLE.GetBorderStyle()).
 		Width(m.size.Width).
 		Height(m.size.Height).
-		Wrap(false)
-
+		Wrap(false).
+		Offset(0)
+	// Build table from actions
 	var rowStrings []string
 	for i, action := range m.actionsDelegate() {
 		if i != 0 && i%itemsPerRow == 0 {
@@ -99,10 +112,12 @@ func (m ActionListModel) View() string {
 		}
 		rowStrings = append(rowStrings, action.GetName())
 	}
-
 	if len(rowStrings) > 0 {
 		outputTable.Row(rowStrings...)
 	}
 
-	return outputTable.Render()
+	if len(rowStrings) < 1 {
+		return ""
+	}
+	return outputBorderStyle.Render(strings.TrimSpace(outputTable.Render()))
 }
