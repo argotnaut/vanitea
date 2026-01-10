@@ -29,20 +29,6 @@ type ActionBarModel struct {
 }
 
 /*
-Returns the list of available action names that could tab-complete the
-current content of the text input
-*/
-func (m ActionBarModel) getSuggestionsFromActions() (output []string) {
-	if m.actionsDelegate == nil {
-		return
-	}
-	for _, action := range m.actionsDelegate() {
-		output = append(output, action.GetName())
-	}
-	return
-}
-
-/*
 Instantiates a new ActionBarModel with default settings
 */
 func NewActionBarModel(actionsDelegate func() []con.Action) *ActionBarModel {
@@ -60,9 +46,9 @@ func NewActionBarModel(actionsDelegate func() []con.Action) *ActionBarModel {
 		actionStack: con.NewActionStack(),
 	}
 	actionBar.SetInput(input).SetActionDelegate(actionsDelegate)
-	actionBar.actionListModel = NewActionListModel(func() []con.Action {
+	actionBar.actionListModel = NewActionListModel(func(input string) []con.Action {
 		allActions := (con.Actions)(actionBar.actionsDelegate())
-		matches := fuzzy.Find(actionBar.input.Value(), allActions.Names())
+		matches := fuzzy.Find(input, allActions.Names())
 		var output []con.Action
 		for _, match := range matches {
 			output = append(output, allActions[match.Index])
@@ -78,7 +64,6 @@ Sets the function used by ActionBarModel to get the list of available actions
 */
 func (m *ActionBarModel) SetActionDelegate(delegate func() []con.Action) *ActionBarModel {
 	m.actionsDelegate = delegate
-	m.input.SetSuggestions(m.getSuggestionsFromActions())
 	return m
 }
 
@@ -88,6 +73,10 @@ Sets the model for the ActionBarModel's text input
 func (m *ActionBarModel) SetInput(input textinput.Model) *ActionBarModel {
 	m.input = input
 	return m
+}
+
+func (m ActionBarModel) GetInputValue() string {
+	return m.input.Value()
 }
 
 /*
@@ -136,22 +125,11 @@ func (m *ActionBarModel) HandleShortcuts(shortcut string) *ActionBarModel {
 	return m
 }
 
-/*
-Returns the list of actions whose names could be used to
-autocomplete the current text in the ActionBarModel's text input
-*/
-func (m ActionBarModel) getActionsFromSuggestions() (output []con.Action) {
+func (m ActionBarModel) GetActions() (output []con.Action) {
 	if m.actionsDelegate == nil {
 		return
 	}
-	for _, suggestion := range m.input.AvailableSuggestions() {
-		for _, action := range m.actionsDelegate() {
-			if suggestion == action.GetName() {
-				output = append(output, action)
-			}
-		}
-	}
-	return
+	return m.actionsDelegate()
 }
 
 /*
@@ -162,30 +140,59 @@ func (m ActionBarModel) Init() tea.Cmd {
 }
 
 func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.actionListModel.focusKeyMap.Contains(msg.String()) {
+			m.actionListModel, cmd = m.actionListModel.Update(msg)
+			focusedSuggestion := m.actionListModel.GetFocusedSuggestion()
+			if focusedSuggestion != nil {
+				m.input.SetValue((*focusedSuggestion).GetName())
+				m.input.CursorEnd()
+			}
+			return m, cmd
+		}
+		/*
+			if this key message wasn't meant for the actionListModel,
+			it must have been the user changing the input value, so
+			the user should be suggested a new set of actions
+		*/
+		m.input, cmd = m.input.Update(msg)
+		cmds = append(cmds, cmd)
+		m.actionListModel.UpdateSuggestedActionsFromInput(
+			m.GetInputValue(),
+		)
+
 		switch msg.String() {
 		case "enter":
 			if m.actionsDelegate != nil {
-				val := m.input.Value()
 				for _, action := range m.actionsDelegate() {
-					if action.GetName() == val {
+					if action.GetName() == m.GetInputValue() {
 						m.actionStack.Execute(action)
 						m.input.Reset()
+						m.actionListModel.UpdateSuggestedActionsFromInput(
+							m.GetInputValue(),
+						)
 					}
 				}
 			}
 		}
+		return m, tea.Batch(cmds...)
 	case tea.WindowSizeMsg:
 		m.input.Width = msg.Width
 	}
 
-	m.input, cmd = m.input.Update(msg)
+	// keep the actionListModel from searching for matching suggestions if there's no input
+	if len(strings.TrimSpace(m.GetInputValue())) < 1 {
+		m.actionListModel.Blur()
+	}
 
 	m.actionListModel, cmd = m.actionListModel.Update(msg)
-
-	return m, cmd
+	cmds = append(cmds, cmd)
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
 
 func (m ActionBarModel) View() string {
@@ -195,7 +202,7 @@ func (m ActionBarModel) View() string {
 		highlightForeground := lipgloss.NewStyle().Foreground(highlight)
 		endcap := highlightBackground.Render(" ? - help ")
 		shortcutStrings := []string{}
-		for _, action := range m.getActionsFromSuggestions() {
+		for _, action := range m.GetActions() {
 			shortcutStrings = append(
 				shortcutStrings,
 				highlightForeground.Render(

@@ -2,6 +2,7 @@ package actionbar
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	con "github.com/argotnaut/vanitea/container"
@@ -13,25 +14,59 @@ import (
 )
 
 const (
-	UP_ARROW    = "up"
-	DOWN_ARROW  = "down"
-	LEFT_ARROW  = "left"
-	RIGHT_ARROW = "right"
+	NO_FOCUS_INDEX = -1
 )
 
 var DEFAULT_TABLE_STYLE = lipgloss.HiddenBorder()
 
 type ActionListModel struct {
-	actionsDelegate func() []con.Action
-	focusIndex      int
-	size            tea.WindowSizeMsg
+	actionsDelegate    func(string) []con.Action
+	currentSuggestions []con.Action
+	/*
+		The input (usually a filter string) with which the
+		actionsDelegate will determine which actions to suggest
+	*/
+	input string
+	// The index of the suggestion that currently has focus
+	focusIndex  int
+	focusKeyMap con.LinearFocusKeyMap
+	size        tea.WindowSizeMsg
 }
 
-func NewActionListModel(actions func() []con.Action) ActionListModel {
+func NewActionListModel(actions func(string) []con.Action) ActionListModel {
 	output := ActionListModel{
 		actionsDelegate: actions,
+		focusIndex:      NO_FOCUS_INDEX,
+		focusKeyMap:     con.NewDefaultLinearFocusKeyMap(),
 	}
 	return output
+}
+
+func (m *ActionListModel) SetInput(input string) *ActionListModel {
+	m.input = input
+	return m
+}
+
+func (m *ActionListModel) GetInput() string {
+	return m.input
+}
+
+func (m ActionListModel) GetCurrentSuggestions() (output []con.Action) {
+	return m.currentSuggestions
+}
+
+func (m *ActionListModel) UpdateSuggestedActions() (output *ActionListModel) {
+	if m.actionsDelegate == nil {
+		return
+	}
+	m.currentSuggestions = m.actionsDelegate(m.input)
+	return m
+}
+
+func (m *ActionListModel) UpdateSuggestedActionsFromInput(input string) (output *ActionListModel) {
+	m.SetInput(input)
+	m.UpdateSuggestedActions()
+	return m
 }
 
 func actionNames(actions []con.Action) (output []string) {
@@ -49,8 +84,38 @@ func FilterActions(filterString string, actions []con.Action) (output []int) {
 	return output
 }
 
-func (m ActionListModel) NumberOfActions() int {
-	return len(m.actionsDelegate())
+func (m ActionListModel) GetFocusedSuggestion() *con.Action {
+	suggestedActions := m.GetCurrentSuggestions()
+	if !m.Focused() || len(suggestedActions) < 1 || m.focusIndex >= len(suggestedActions) {
+		return nil
+	}
+	return &suggestedActions[m.focusIndex]
+}
+
+func (m *ActionListModel) setFocusIndex(newIndex int) *ActionListModel {
+	m.focusIndex = utils.WrapInt(newIndex, 0, len(m.GetCurrentSuggestions())+1)
+	return m
+}
+
+func (m *ActionListModel) focusForward() *ActionListModel {
+	return m.setFocusIndex(m.focusIndex + 1)
+}
+
+func (m *ActionListModel) focusBackward() *ActionListModel {
+	return m.setFocusIndex(m.focusIndex - 1)
+}
+
+func (m *ActionListModel) Blur() *ActionListModel {
+	m.focusIndex = NO_FOCUS_INDEX
+	return m
+}
+
+func (m *ActionListModel) Focus() *ActionListModel {
+	return m.setFocusIndex(0)
+}
+
+func (m ActionListModel) Focused() bool {
+	return m.focusIndex > NO_FOCUS_INDEX
 }
 
 func (m ActionListModel) Init() tea.Cmd {
@@ -60,24 +125,19 @@ func (m ActionListModel) Init() tea.Cmd {
 func (m ActionListModel) Update(msg tea.Msg) (ActionListModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.NumberOfActions() > 0 {
-			switch msg.String() {
-			case "tab":
-				m.focusIndex = utils.WrapInt(
-					m.focusIndex-1,
-					0,
-					m.NumberOfActions(),
-				)
-			case "shift+tab":
-				m.focusIndex = utils.WrapInt(
-					m.focusIndex+1,
-					0,
-					m.NumberOfActions(),
-				)
+		if len(m.GetCurrentSuggestions()) > 0 {
+			if slices.Contains(m.focusKeyMap.FocusForward, msg.String()) {
+				m.focusForward()
+			} else if slices.Contains(m.focusKeyMap.FocusBackward, msg.String()) {
+				m.focusBackward()
 			}
 		}
 	case tea.WindowSizeMsg:
 		m.size = msg
+	}
+
+	if m.Focused() && len(m.GetCurrentSuggestions()) < 1 {
+		m.Blur()
 	}
 	return m, nil
 }
@@ -105,12 +165,16 @@ func (m ActionListModel) View() string {
 		Offset(0)
 	// Build table from actions
 	var rowStrings []string
-	for i, action := range m.actionsDelegate() {
+	for i, action := range m.GetCurrentSuggestions() {
 		if i != 0 && i%itemsPerRow == 0 {
 			outputTable.Row(rowStrings...)
 			rowStrings = []string{}
 		}
-		rowStrings = append(rowStrings, action.GetName())
+
+		nameString := lipgloss.NewStyle().Reverse(
+			i == m.focusIndex, // Switch foreground and background colors of this table entry, if it has focus
+		).Render(action.GetName())
+		rowStrings = append(rowStrings, nameString)
 	}
 	if len(rowStrings) > 0 {
 		outputTable.Row(rowStrings...)
