@@ -24,6 +24,10 @@ func (cpm ColorPreviewModel) GetColorPlaceholder() placeholder.PlaceholderModel 
 	return cpm.colorPlaceholder.GetModel().(placeholder.PlaceholderModel)
 }
 
+func (cpm ColorPreviewModel) GetColor() string {
+	return cpm.currentColor
+}
+
 func GetColorPreviewModel() (output ColorPreviewModel) {
 	colors := []list.Item{
 		colorItem{title: "Dark cyan", desc: "#008B8B"},

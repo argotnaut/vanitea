@@ -6,6 +6,7 @@ require github.com/charmbracelet/bubbletea v1.3.5
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
+	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
 	golang.org/x/net v0.39.0 // indirect
@@ -22,6 +23,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/disintegration/imaging v1.6.2
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/erikgeiser/promptkit v0.9.0
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
