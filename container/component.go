@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/argotnaut/vanitea/colors"
 	"github.com/argotnaut/vanitea/utils"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -11,11 +12,11 @@ import (
 
 var FOCUSED_BORDER_STYLE = lipgloss.NewStyle().BorderStyle(
 	lipgloss.RoundedBorder(),
-).BorderForeground(lipgloss.Color("69"))
+).BorderForeground(lipgloss.Color(colors.FOCUSED_BORDER))
 
 var BORDER_STYLE = lipgloss.NewStyle().BorderStyle(
 	lipgloss.RoundedBorder(),
-).BorderForeground(lipgloss.Color("#AAAAAA"))
+).BorderForeground(lipgloss.Color(colors.UNFOCUSED_BORDER))
 
 const (
 	TOP_RIGHT = iota

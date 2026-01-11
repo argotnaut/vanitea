@@ -123,6 +123,7 @@ func GetColorMakerModel() (output ColorMakerModel) {
 	output.actionBar = actionbar.NewActionBarModel(
 		func() (newActions []con.Action) {
 			newActions = append(newActions, output.colorPlaceholder.GetActions()...)
+			newActions = append(newActions, con.NewDefaultAction("exit", "Exit the program", "", nil, nil, nil))
 			return
 		},
 	)

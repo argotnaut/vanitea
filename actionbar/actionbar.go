@@ -1,8 +1,10 @@
 package actionbar
 
 import (
+	"slices"
 	"strings"
 
+	"github.com/argotnaut/vanitea/colors"
 	con "github.com/argotnaut/vanitea/container"
 	"github.com/argotnaut/vanitea/utils"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -24,7 +26,7 @@ type ActionBarModel struct {
 	actionsDelegate func() []con.Action
 	// Manages the undo/redo stacks when handling action execution
 	actionStack *con.ActionStack
-	//
+	// The list of action suggestions to be shown to the user
 	actionListModel ActionListModel
 }
 
@@ -35,7 +37,9 @@ func NewActionBarModel(actionsDelegate func() []con.Action) *ActionBarModel {
 	input := textinput.New()
 	input.Placeholder = "action"
 	input.Prompt = "Do: "
-	purpleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
+	purpleStyle := lipgloss.NewStyle().Foreground(
+		lipgloss.Color(colors.ACTION_BAR_CURSOR),
+	)
 	input.PromptStyle = purpleStyle
 	input.Cursor.Style = purpleStyle
 	input.Focus()
@@ -75,6 +79,9 @@ func (m *ActionBarModel) SetInput(input textinput.Model) *ActionBarModel {
 	return m
 }
 
+/*
+Returns the current value of the textinput.Model
+*/
 func (m ActionBarModel) GetInputValue() string {
 	return m.input.Value()
 }
@@ -125,11 +132,30 @@ func (m *ActionBarModel) HandleShortcuts(shortcut string) *ActionBarModel {
 	return m
 }
 
+/*
+Calls the ActionBarModel.actionsDelegate to get a list of all actions
+*/
 func (m ActionBarModel) GetActions() (output []con.Action) {
 	if m.actionsDelegate == nil {
 		return
 	}
 	return m.actionsDelegate()
+}
+
+/*
+Returns true if the given string is the name of a "quit program" action
+*/
+func (m ActionBarModel) isQuitCommand(input string) bool {
+	const EXIT_STRING = "exit"
+	return slices.Contains(
+		[]string{EXIT_STRING, "quit", "q"},
+		input,
+	) && slices.ContainsFunc(
+		m.GetActions(),
+		func(action con.Action) bool {
+			return action.GetName() == EXIT_STRING
+		},
+	)
 }
 
 /*
@@ -144,6 +170,9 @@ func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		oldInputValue := m.GetInputValue()
+
+		// Handle any keys meant to manipulate the actionListModel focus
 		if m.actionListModel.focusKeyMap.Contains(msg.String()) {
 			m.actionListModel, cmd = m.actionListModel.Update(msg)
 			focusedSuggestion := m.actionListModel.GetFocusedSuggestion()
@@ -153,20 +182,14 @@ func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 		}
-		/*
-			if this key message wasn't meant for the actionListModel,
-			it must have been the user changing the input value, so
-			the user should be suggested a new set of actions
-		*/
-		m.input, cmd = m.input.Update(msg)
-		cmds = append(cmds, cmd)
-		m.actionListModel.UpdateSuggestedActionsFromInput(
-			m.GetInputValue(),
-		)
 
+		// Execute the current action on 'enter'
 		switch msg.String() {
 		case "enter":
 			if m.actionsDelegate != nil {
+				if m.isQuitCommand(m.GetInputValue()) {
+					return m, tea.Quit
+				}
 				for _, action := range m.actionsDelegate() {
 					if action.GetName() == m.GetInputValue() {
 						m.actionStack.Execute(action)
@@ -178,6 +201,16 @@ func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+
+		// Update the ActionBarModel's input and update suggested actions if the input's value has changed
+		m.input, cmd = m.input.Update(msg)
+		cmds = append(cmds, cmd)
+		if m.GetInputValue() != oldInputValue {
+			m.actionListModel.UpdateSuggestedActionsFromInput(
+				m.GetInputValue(),
+			)
+		}
+
 		return m, tea.Batch(cmds...)
 	case tea.WindowSizeMsg:
 		m.input.Width = msg.Width
@@ -197,7 +230,7 @@ func (m ActionBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ActionBarModel) View() string {
 	if !m.input.Focused() {
-		highlight := lipgloss.Color("65")
+		highlight := lipgloss.Color(colors.ACTION_BAR_ENDCAP_BACKGROUND)
 		highlightBackground := lipgloss.NewStyle().Background(highlight)
 		highlightForeground := lipgloss.NewStyle().Foreground(highlight)
 		endcap := highlightBackground.Render(" ? - help ")

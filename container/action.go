@@ -52,11 +52,18 @@ type DefaultAction struct {
 	description string
 	shortcut    string
 	target      *Component
-	execute     func()
-	undo        func()
+	execute     func(*Component)
+	undo        func(*Component)
 }
 
-func NewDefaultAction(name string, description string, shortcut string, target *Component, execute func(), undo func()) *DefaultAction {
+func NewDefaultAction(
+	name string,
+	description string,
+	shortcut string,
+	target *Component,
+	execute func(*Component),
+	undo func(*Component),
+) *DefaultAction {
 	return &DefaultAction{
 		name:        name,
 		description: description,
@@ -72,7 +79,7 @@ Executes the 'execute' function, if provided
 */
 func (m DefaultAction) Execute() Action {
 	if m.execute != nil {
-		m.execute()
+		m.execute(m.GetTarget())
 	}
 	return m
 }
@@ -82,7 +89,7 @@ Undoes the 'execute' function by calling the 'undo' function, if provided
 */
 func (m DefaultAction) Undo() Action {
 	if m.undo != nil {
-		m.undo()
+		m.undo(m.GetTarget())
 	}
 	return m
 }
