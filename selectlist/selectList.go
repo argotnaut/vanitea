@@ -1,6 +1,8 @@
 package vanitea
 
 import (
+	"slices"
+
 	con "github.com/argotnaut/vanitea/container"
 	"github.com/argotnaut/vanitea/utils"
 	"github.com/charmbracelet/bubbles/key"
@@ -170,30 +172,44 @@ func (m SelectList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		cmds = append(cmds, m.handleKeyMapKey(msg))
-	case tea.WindowSizeMsg:
-		if m.focusedComponentPosition != 0 {
-			relativeVerticalOffset := m.size.Height / m.focusedComponentPosition
-			m.focusedComponentPosition = utils.ClampInt(msg.Height*relativeVerticalOffset, 0, m.size.Height)
+		if msg.String() == "r" {
+			newHeight := m.GetFocusedComponent().GetSize().Height
+			if newHeight >= 8 {
+				newHeight = 8
+			} else {
+				newHeight = 16
+			}
+			m.GetFocusedComponent().SetMaximumHeight(newHeight)
+		} else {
+			cmds = append(cmds, m.handleKeyMapKey(msg))
 		}
+	case tea.WindowSizeMsg:
 		m.size = msg
 	}
-
-	// // Update list item models
-	// for i, component := range m.components {
-	// 	newModel, cmd := component.Update(msg)
-	// 	m.components[i].SetModel(newModel)
-	// 	cmds = append(cmds, cmd)
-	// }
 	for _, component := range m.GetComponents() {
 		model, cmd := component.GetModel().Update(msg)
 		component.SetModel(model)
 		cmds = append(cmds, cmd)
-		resizeCmd := m.resizeComponentModelForStyle(component, tea.WindowSizeMsg{Width: 80, Height: 4})
+		resizeCmd := m.resizeComponentModelForStyle(component, tea.WindowSizeMsg{Width: 80, Height: 8})
 		cmds = append(cmds, resizeCmd)
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func limitHeight(input string, height int) string {
+	if height < 1 {
+		return ""
+	}
+	return lipgloss.NewStyle().MaxHeight(height).Render(input)
+}
+
+func joinViewsVertically(strs ...string) string {
+	toJoin := slices.DeleteFunc(strs, func(s string) bool { return s == "" })
+	return lipgloss.JoinVertical(
+		lipgloss.Top,
+		toJoin...,
+	)
 }
 
 func (m SelectList) View() string {
@@ -217,29 +233,24 @@ func (m SelectList) View() string {
 			joinedViews = item
 			renderedSpaceLowerBound += lipgloss.Height(item)
 		} else if (i % 2) == 0 {
-			joinedViews = lipgloss.JoinVertical(
-				lipgloss.Top,
-				lipgloss.NewStyle().MaxHeight(
-					renderedSpaceUpperBound, // Cut off the rendered component, if there isn't enough room to render it fully
-				).Render(item),
+			joinedViews = joinViewsVertically(
+				limitHeight(item, renderedSpaceUpperBound),
 				joinedViews,
 			)
 			renderedSpaceUpperBound -= lipgloss.Height(item)
 		} else {
-			joinedViews = lipgloss.JoinVertical(
-				lipgloss.Top,
+			joinedViews = joinViewsVertically(
 				joinedViews,
-				lipgloss.NewStyle().MaxHeight(
-					m.size.Height-renderedSpaceLowerBound, // Cut off the rendered component, if there isn't enough room to render it fully
-				).Render(item),
+				limitHeight(item, m.size.Height-renderedSpaceLowerBound),
 			)
 			renderedSpaceLowerBound += lipgloss.Height(item)
 		}
 
-		if renderedSpaceLowerBound-renderedSpaceUpperBound > m.size.Height {
+		// if renderedSpaceLowerBound-renderedSpaceUpperBound > m.size.Height {
+		if renderedSpaceLowerBound >= m.size.Height && renderedSpaceUpperBound <= 0 {
 			break
 		}
 	}
 
-	return lipgloss.DefaultRenderer().NewStyle().Render(joinedViews)
+	return joinedViews
 }
