@@ -3,7 +3,6 @@ package placeholder
 import (
 	"strings"
 
-	utils "github.com/argotnaut/vanitea/utils"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -27,14 +26,10 @@ func GetPlaceholder(style *lipgloss.Style, wrapWidth *int, width *int, height *i
 	} else {
 		newStyle = *style
 	}
-	terminalWidth, terminalHeight, err := utils.GetTerminalSize()
-	if err != nil {
-		panic(err)
-	}
 
 	dimensions := Dimensions{
-		width:  nilOr(width, terminalWidth),
-		height: nilOr(height, terminalHeight),
+		width:  nilOr(width, 0),
+		height: nilOr(height, 0),
 	}
 	m := PlaceholderModel{
 		dimensions: dimensions,
