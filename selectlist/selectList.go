@@ -170,28 +170,32 @@ func (m *SelectList) handleKeyMapKey(msg tea.Msg) tea.Cmd {
 func (m SelectList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	updateComponent := func(component *con.Component, msg tea.Msg) tea.Cmd {
+		model, cmd := component.GetModel().Update(msg)
+		component.SetModel(model)
+		return cmd
+	}
+	resizeComponent := func(component *con.Component) tea.Cmd {
+		return m.resizeComponentModelForStyle(component, tea.WindowSizeMsg{Width: 80, Height: 40})
+	}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "r" {
-			newHeight := m.GetFocusedComponent().GetSize().Height
-			if newHeight >= 8 {
-				newHeight = 8
-			} else {
-				newHeight = 16
-			}
-			m.GetFocusedComponent().SetMaximumHeight(newHeight)
-		} else {
-			cmds = append(cmds, m.handleKeyMapKey(msg))
+		keyMapResult := m.handleKeyMapKey(msg)
+		cmds = append(cmds, keyMapResult)
+		focusedComponent := m.GetFocusedComponent()
+		if focusedComponent != nil && keyMapResult == nil {
+			cmds = append(cmds, updateComponent(focusedComponent, msg))
 		}
+		return m, tea.Batch(cmds...)
 	case tea.WindowSizeMsg:
 		m.size = msg
 	}
 	for _, component := range m.GetComponents() {
-		model, cmd := component.GetModel().Update(msg)
-		component.SetModel(model)
-		cmds = append(cmds, cmd)
-		resizeCmd := m.resizeComponentModelForStyle(component, tea.WindowSizeMsg{Width: 80, Height: 8})
-		cmds = append(cmds, resizeCmd)
+		cmds = append(
+			cmds,
+			updateComponent(component, msg),
+			resizeComponent(component),
+		)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -213,11 +217,6 @@ func joinViewsVertically(strs ...string) string {
 }
 
 func (m SelectList) View() string {
-	/*
-		render the focused item
-		render alternating items before and after it until the view height is filled or there are no more items to render
-		reposition and/or crop the rendered block of items, if necessary
-	*/
 	renderedSpaceUpperBound := m.focusedComponentPosition
 	renderedSpaceLowerBound := renderedSpaceUpperBound
 	joinedViews := ""
@@ -246,7 +245,6 @@ func (m SelectList) View() string {
 			renderedSpaceLowerBound += lipgloss.Height(item)
 		}
 
-		// if renderedSpaceLowerBound-renderedSpaceUpperBound > m.size.Height {
 		if renderedSpaceLowerBound >= m.size.Height && renderedSpaceUpperBound <= 0 {
 			break
 		}

@@ -404,8 +404,7 @@ func limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
 	style := lipgloss.DefaultRenderer().NewStyle().
 		MaxWidth(sizeLimit.Width).
 		Width(sizeLimit.Width).
-		MaxHeight(sizeLimit.Height).
-		Height(sizeLimit.Height)
+		MaxHeight(sizeLimit.Height)
 	return style.Render(input)
 }
 
