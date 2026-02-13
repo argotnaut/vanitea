@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type SelectList struct {
+type ComponentList struct {
 	/*
 		The list of components to be rendered
 	*/
@@ -36,10 +36,10 @@ type SelectList struct {
 }
 
 /*
-Initializes a new SelectList with default values
+Initializes a new ComponentList with default values
 */
-func NewSelectList(components []*con.Component) *SelectList {
-	output := SelectList{
+func NewComponentList(components []*con.Component) *ComponentList {
+	output := ComponentList{
 		components: components,
 		KeyMap:     list.DefaultKeyMap(),
 	}
@@ -47,26 +47,26 @@ func NewSelectList(components []*con.Component) *SelectList {
 	return &output
 }
 
-func (m SelectList) GetComponents() []*con.Component {
+func (m ComponentList) GetComponents() []*con.Component {
 	return m.components
 }
 
-func (m SelectList) GetSize() tea.WindowSizeMsg {
+func (m ComponentList) GetSize() tea.WindowSizeMsg {
 	return m.size
 }
 
-func (m SelectList) GetFocusedComponent() (output *con.Component) {
+func (m ComponentList) GetFocusedComponent() (output *con.Component) {
 	if m.IsEmpty() {
 		return nil
 	}
 	return m.GetComponents()[m.focusedIndex]
 }
 
-func (m SelectList) IsEmpty() bool {
+func (m ComponentList) IsEmpty() bool {
 	return len(m.GetComponents()) < 1
 }
 
-func (m *SelectList) SetFocusIndex(index int) *SelectList {
+func (m *ComponentList) SetFocusIndex(index int) *ComponentList {
 	if m.IsEmpty() {
 		m.focusedIndex = -1
 	} else if index < 0 {
@@ -79,15 +79,15 @@ func (m *SelectList) SetFocusIndex(index int) *SelectList {
 	return m
 }
 
-func (m *SelectList) FocusForward() *SelectList {
+func (m *ComponentList) FocusForward() *ComponentList {
 	return m.SetFocusIndex(m.focusedIndex + 1)
 }
 
-func (m *SelectList) FocusBackward() *SelectList {
+func (m *ComponentList) FocusBackward() *ComponentList {
 	return m.SetFocusIndex(m.focusedIndex - 1)
 }
 
-func (m SelectList) getAlternatingComponents(startIdx int) (output []*con.Component) {
+func (m ComponentList) getAlternatingComponents(startIdx int) (output []*con.Component) {
 	components := m.GetComponents()
 	if len(components) < 1 {
 		return
@@ -112,7 +112,7 @@ func (m SelectList) getAlternatingComponents(startIdx int) (output []*con.Compon
 	return
 }
 
-func (m SelectList) resizeComponentModelForStyle(component *con.Component, size tea.WindowSizeMsg) tea.Cmd {
+func (m ComponentList) resizeComponentModelForStyle(component *con.Component, size tea.WindowSizeMsg) tea.Cmd {
 	if component == nil {
 		return nil
 	}
@@ -129,7 +129,7 @@ func (m SelectList) resizeComponentModelForStyle(component *con.Component, size 
 	return cmd
 }
 
-func (m SelectList) renderForStyle(component *con.Component) string {
+func (m ComponentList) renderForStyle(component *con.Component) string {
 	if component == nil {
 		return ""
 	}
@@ -140,7 +140,7 @@ func (m SelectList) renderForStyle(component *con.Component) string {
 	}
 }
 
-func (m SelectList) Init() tea.Cmd {
+func (m ComponentList) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	for _, component := range m.components {
 		cmds = append(cmds, component.GetModel().Init())
@@ -148,7 +148,7 @@ func (m SelectList) Init() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m *SelectList) handleKeyMapKey(msg tea.Msg) tea.Cmd {
+func (m *ComponentList) handleKeyMapKey(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -167,7 +167,7 @@ func (m *SelectList) handleKeyMapKey(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-func (m SelectList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m ComponentList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	updateComponent := func(component *con.Component, msg tea.Msg) tea.Cmd {
@@ -176,7 +176,7 @@ func (m SelectList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return cmd
 	}
 	resizeComponent := func(component *con.Component) tea.Cmd {
-		return m.resizeComponentModelForStyle(component, tea.WindowSizeMsg{Width: 80, Height: 40})
+		return m.resizeComponentModelForStyle(component, tea.WindowSizeMsg{Width: m.size.Width, Height: 40})
 	}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -184,7 +184,7 @@ func (m SelectList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, keyMapResult)
 		focusedComponent := m.GetFocusedComponent()
 		if focusedComponent != nil && keyMapResult == nil {
-			cmds = append(cmds, updateComponent(focusedComponent, msg))
+			cmds = append(cmds, focusedComponent.Update(msg))
 		}
 		return m, tea.Batch(cmds...)
 	case tea.WindowSizeMsg:
@@ -216,7 +216,7 @@ func joinViewsVertically(strs ...string) string {
 	)
 }
 
-func (m SelectList) View() string {
+func (m ComponentList) viewWithComponentRenderer(renderer func(*con.Component) string) string {
 	renderedSpaceUpperBound := m.focusedComponentPosition
 	renderedSpaceLowerBound := renderedSpaceUpperBound
 	joinedViews := ""
@@ -226,7 +226,7 @@ func (m SelectList) View() string {
 		if component == nil {
 			continue
 		}
-		item := m.renderForStyle(component)
+		item := renderer(component)
 
 		if i == 0 {
 			joinedViews = item
@@ -251,4 +251,12 @@ func (m SelectList) View() string {
 	}
 
 	return joinedViews
+}
+
+func (m ComponentList) View() string {
+	return m.viewWithComponentRenderer(
+		func(c *con.Component) string {
+			return m.renderForStyle(c)
+		},
+	)
 }

@@ -352,9 +352,7 @@ func (m LinearContainerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.GetFocusHandler().IsFocusKey(msg.String()) {
 			m.SetFocusHandler(m.GetFocusHandler().HandleFocusKey(msg.String()))
 		} else {
-			focused := m.GetFocusHandler().GetFocusedComponent()
-			updated, keyUpdateCmd := focused.Update(msg)
-			focused.SetModel(updated)
+			keyUpdateCmd := m.GetFocusHandler().GetFocusedComponent().Update(msg)
 			return m, keyUpdateCmd
 		}
 	case tea.WindowSizeMsg:

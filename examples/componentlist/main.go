@@ -3,8 +3,8 @@ package main
 import (
 	"strings"
 
+	cl "github.com/argotnaut/vanitea/componentlist"
 	con "github.com/argotnaut/vanitea/container"
-	sl "github.com/argotnaut/vanitea/selectlist"
 	"github.com/argotnaut/vanitea/utils"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -96,25 +96,6 @@ func main() {
 		getColorBlock("9 Charcoal", "#36454F"),
 		getColorBlock("10 Chili red", "#E23D28"),
 		getColorBlock("11 Dark cyan", "#008B8B"),
-		// getColorBlock("12 Dark olive green", "#556B2F"),
-		// getColorBlock("13 Dark sea green", "#8FBC8F"),
-		// getColorBlock("14 Deep champagne", "#FAD6A5"),
-		// getColorBlock("15 Ecru", "#C2B280"),
-		// getColorBlock("16 Eggplant", "#614051"),
-		// getColorBlock("17 English vermillion", "#CC474B"),
-		// getColorBlock("18 Finn", "#683068"),
-		// getColorBlock("19 French bistre", "#856D4D"),
-		// getColorBlock("20 Fulvous", "#E48400"),
-		// getColorBlock("21 Heliotrope gray", "#AA98A9"),
-		// getColorBlock("22 Jonquil", "#F4CA16"),
-		// getColorBlock("23 Keppel", "#3AB09E"),
-		// getColorBlock("24 Light periwinkle", "#C5CBE1"),
-		// getColorBlock("25 Mauve", "#E0B0FF"),
-		// getColorBlock("26 Myrtle green", "#317873"),
-		// getColorBlock("27 Nadeshiko pink", "#F6ADC6"),
-		// getColorBlock("28 Nyanza", "#E9FFDB"),
-		// getColorBlock("29 Powder blue", "#B0E0E6"),
-		// getColorBlock("30 Razzmatazz", "#E3256B"),
 	}
 	var components []*con.Component
 	for _, color := range colors {
@@ -134,10 +115,11 @@ func main() {
 		components = append(components, newComponent)
 	}
 
-	selectList := sl.NewSelectList(components)
+	// componentList := cl.NewComponentList(components)
+	componentList := cl.NewSelectableList(components)
 
 	_, err := tea.NewProgram(
-		selectList,
+		componentList,
 		tea.WithAltScreen(),
 	).Run()
 	if err != nil {
