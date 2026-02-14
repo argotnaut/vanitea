@@ -8,4 +8,6 @@ const (
 	ACTIONS_LIST_DIVIDER         = "60"      // light grey
 	FOCUSED_BORDER               = "69"      // lavender
 	UNFOCUSED_BORDER             = "#AAAAAA" // light grey
+	SELECTLIST_DESELECTED        = "241"     // dark grey
+	SELECTLIST_SELECTED          = "69"      // lavender
 )

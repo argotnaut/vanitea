@@ -3,6 +3,7 @@ package vanitea
 import (
 	"slices"
 
+	"github.com/argotnaut/vanitea/colors"
 	con "github.com/argotnaut/vanitea/container"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -44,16 +45,39 @@ func DefaultKeyMap() KeyMap {
 
 type SelectableList struct {
 	ComponentList
-	Selected []*con.Component
-	// TODO: Make SelectableList keymap and handle select keys in Update()
-	KeyMap KeyMap
+	Selected         []*con.Component
+	KeyMap           KeyMap
+	SelectedString   string
+	DeselectedString string
 }
 
 func NewSelectableList(components []*con.Component) SelectableList {
+	darkGreyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colors.SELECTLIST_DESELECTED))
+	lavenderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colors.SELECTLIST_SELECTED))
 	return SelectableList{
-		ComponentList: *NewComponentList(components),
-		KeyMap:        DefaultKeyMap(),
+		ComponentList:    *NewComponentList(components),
+		KeyMap:           DefaultKeyMap(),
+		DeselectedString: darkGreyStyle.Render("[") + " " + darkGreyStyle.Render("]"),
+		SelectedString:   darkGreyStyle.Render("[") + lavenderStyle.Render("✓") + darkGreyStyle.Render("]"),
 	}
+}
+
+func (m SelectableList) GetSelectedString() string {
+	return m.SelectedString
+}
+
+func (m SelectableList) GetDeselectedString() string {
+	return m.SelectedString
+}
+
+func (m SelectableList) SetSelectedString(input string) SelectableList {
+	m.SelectedString = input
+	return m
+}
+
+func (m SelectableList) SetDeselectedString(input string) SelectableList {
+	m.DeselectedString = input
+	return m
 }
 
 func (m SelectableList) IsSelected(component *con.Component) bool {
@@ -108,34 +132,60 @@ func (m SelectableList) SelectIndex(idx int) SelectableList {
 	return m
 }
 
+func (m SelectableList) GetSelected() []*con.Component {
+	return m.Selected
+}
+
 func (m SelectableList) getSelectionVisual(comp *con.Component) string {
-	checkboxString := "[ ]"
+	checkboxString := m.DeselectedString
 	padding := 1
 	if slices.ContainsFunc(m.Selected, func(c *con.Component) bool { return c == comp }) {
-		checkboxString = "[X]"
+		checkboxString = m.SelectedString
 		padding = 2
 	}
 	return lipgloss.NewStyle().Padding(padding).Render(checkboxString)
 }
 
-func (m SelectableList) handleSelectionKey(msg tea.Msg) SelectableList {
+func (m SelectableList) resizeComponentModelForStyleAndSelection(
+	component *con.Component,
+	size tea.WindowSizeMsg,
+) tea.Cmd {
+	newSizeMsg := tea.WindowSizeMsg{
+		Height: size.Height,
+		Width:  size.Width - lipgloss.Width(m.getSelectionVisual(component)),
+	}
+	return m.resizeComponentModelForStyle(
+		component,
+		newSizeMsg,
+	)
+}
+
+func (m *SelectableList) handleSelectionKey(msg tea.Msg) tea.Cmd {
+	componentsToResize := []*con.Component{}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.SelectDeselect):
 			focusedComponent := m.GetFocusedComponent()
-			if focusedComponent != nil {
-				m = m.ToggleSelection(focusedComponent)
+			if focusedComponent != nil && m != nil {
+				*m = m.ToggleSelection(focusedComponent)
 			}
+			componentsToResize = append(componentsToResize, focusedComponent)
 		case key.Matches(msg, m.KeyMap.SelectAll):
 			newSelected := make([]*con.Component, len(m.GetComponents()))
 			copy(newSelected, m.GetComponents())
 			m.Selected = newSelected
+			componentsToResize = append(componentsToResize, newSelected...)
 		case key.Matches(msg, m.KeyMap.DeselectAll):
+			componentsToResize = append(componentsToResize, m.Selected...)
 			m.Selected = []*con.Component{}
 		}
 	}
-	return m
+	var cmds []tea.Cmd
+	for _, comp := range componentsToResize {
+		cmds = append(cmds, m.resizeComponentModelForStyleAndSelection(comp, m.size))
+	}
+	return nil
 }
 
 func (m SelectableList) Init() tea.Cmd {
@@ -147,7 +197,7 @@ func (m SelectableList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		m = m.handleSelectionKey(msg)
+		cmds = append(cmds, m.handleSelectionKey(msg))
 		keyMapResult := m.handleKeyMapKey(msg)
 		cmds = append(cmds, keyMapResult)
 		focusedComponent := m.GetFocusedComponent()
@@ -158,14 +208,7 @@ func (m SelectableList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.size = msg
 		for _, comp := range m.GetComponents() {
-			newSizeMsg := tea.WindowSizeMsg{
-				Height: msg.Height,
-				Width:  msg.Width - lipgloss.Width(m.getSelectionVisual(comp)),
-			}
-			cmds = append(cmds, m.resizeComponentModelForStyle(
-				comp,
-				newSizeMsg,
-			))
+			cmds = append(cmds, m.resizeComponentModelForStyleAndSelection(comp, m.size))
 		}
 		return m, tea.Batch(cmds...)
 	}
