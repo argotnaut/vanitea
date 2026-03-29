@@ -370,12 +370,14 @@ the result. If the given message is a tea.WindowSizeMsg, it will
 call the Component's SetSize function to record the change int
 the model's size
 */
-func (m *Component) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Component) Update(message tea.Msg) tea.Cmd {
 	switch message := message.(type) {
 	case tea.WindowSizeMsg:
 		m.SetSize(message)
 	}
-	return m.GetModel().Update(message)
+	newModel, outputCmd := m.GetModel().Update(message)
+	m.SetModel(newModel)
+	return outputCmd
 }
 
 /*
@@ -404,8 +406,7 @@ func limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
 	style := lipgloss.DefaultRenderer().NewStyle().
 		MaxWidth(sizeLimit.Width).
 		Width(sizeLimit.Width).
-		MaxHeight(sizeLimit.Height).
-		Height(sizeLimit.Height)
+		MaxHeight(sizeLimit.Height)
 	return style.Render(input)
 }
 
