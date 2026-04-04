@@ -243,16 +243,21 @@ func (m ActionBarModel) View() string {
 				)+" "+action.GetName(),
 			)
 		}
-		output := lipgloss.DefaultRenderer().NewStyle().
-			Foreground(highlight).
-			Render(
-				strings.Join(shortcutStrings, "  "),
-			)
-		return ansi.Truncate(
+		output := strings.TrimSpace(
+			lipgloss.DefaultRenderer().NewStyle().
+				Foreground(highlight).
+				Render(
+					strings.Join(shortcutStrings, "  "),
+				),
+		)
+		shortcutsView := ansi.Truncate(
 			output,
-			max(0, m.input.Width-lipgloss.Width(endcap)),
+			max(0, m.input.Width-(lipgloss.Width(endcap)+1)),
 			utils.ELLIPSIS,
-		) + endcap
+		)
+		fillerLength := max(0, m.input.Width-(lipgloss.Width(shortcutsView)+lipgloss.Width(endcap)))
+		filler := strings.Repeat(" ", fillerLength)
+		return shortcutsView + filler + endcap
 	}
 
 	if len(m.actionListModel.View()) < 1 {
