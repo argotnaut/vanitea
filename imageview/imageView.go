@@ -1,6 +1,7 @@
 package imageview
 
 import (
+	"image"
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,7 +16,7 @@ const (
 A model which handles the displaying/resizing of an image in ASCII characters
 */
 type ImageViewModel struct {
-	imageBytes        []byte            // The bytes of the original image
+	imageFrames       []image.Image     // The original image bytes' decoded color values
 	stringifiedImage  string            // The current ASCII representation of the image
 	currentDimensions tea.WindowSizeMsg // The dimensions within which to display the image
 }
@@ -24,7 +25,8 @@ type ImageViewModel struct {
 Returns a new ImageViewModel with the given image bytes
 */
 func NewImageViewModelFromBytes(imageBytes []byte) (output ImageViewModel) {
-	output.imageBytes = imageBytes
+	imageFrames, _ := decodeImageBytes(imageBytes)
+	output.imageFrames = imageFrames
 	output.RerenderImage(output.currentDimensions)
 	return
 }
@@ -48,7 +50,7 @@ func (m *ImageViewModel) RerenderImage(newDimensions tea.WindowSizeMsg) {
 	widthHasChanged := m.currentDimensions.Width != newDimensions.Width
 	heightHasChanged := m.currentDimensions.Height != newDimensions.Height
 	if widthHasChanged || heightHasChanged {
-		m.stringifiedImage = getScaledImage(m.imageBytes, &newDimensions)
+		m.stringifiedImage = getScaledImage(m.imageFrames, &newDimensions)
 	}
 }
 

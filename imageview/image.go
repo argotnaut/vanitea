@@ -17,16 +17,6 @@ import (
 	"github.com/mat/besticon/ico"
 )
 
-const RESIZE_OFFSET_Y = 8
-const RESIZE_FACTOR_Y = 2
-const RESIZE_FACTOR_X = 1
-const DEFAULT_TERM_COLS = 80
-const DEFAULT_TERM_ROWS = 24
-const FPS = 15
-
-const ANSI_CURSOR_UP = "\x1B[%dA"
-const ANSI_CURSOR_HIDE = "\x1B[?25l"
-const ANSI_CURSOR_SHOW = "\x1B[?25h"
 const ANSI_BG_TRANSPARENT_COLOR = "\x1b[0;39;49m"
 const ANSI_BG_RGB_COLOR = "\x1b[48;2;%d;%d;%dm"
 const ANSI_FG_TRANSPARENT_COLOR = "\x1b[0m "
@@ -204,25 +194,33 @@ func rescaleImageToBounds(imageDimensions tea.WindowSizeMsg, bounds tea.WindowSi
 	return output
 }
 
-func getScaledImage(image []byte, size *tea.WindowSizeMsg) string {
-	const ERROR_OUTPUT = "[-]"
+func decodeImageBytes(image []byte) (output []image.Image, err error) {
 	if len(image) < 1 {
-		return ERROR_OUTPUT
+		return output, fmt.Errorf("image bytes slice was empty")
 	}
 	decodedImages := decode(image)
-	if len(decodedImages) < 1 {
+	return decodedImages, nil
+}
+
+func getImageDimensions(image image.Image) tea.WindowSizeMsg {
+	return tea.WindowSizeMsg{
+		Height: image.Bounds().Dy(),
+		Width:  image.Bounds().Dx(),
+	}
+}
+
+func getScaledImage(frames []image.Image, size *tea.WindowSizeMsg) string {
+	const ERROR_OUTPUT = "[-]"
+	if len(frames) < 1 {
 		return ERROR_OUTPUT
 	}
-	imageDimensions := tea.WindowSizeMsg{
-		Height: decodedImages[0].Bounds().Dy(),
-		Width:  decodedImages[0].Bounds().Dx(),
-	}
+	imageDimensions := getImageDimensions(frames[0])
 	if size != nil {
 		size.Height *= 2 // multiply height by two to convert from characters to "pixels"
 		imageDimensions = rescaleImageToBounds(imageDimensions, *size)
 	}
 	rescaledImage := scale(
-		decodedImages,
+		frames,
 		imageDimensions,
 	)
 	output := escape(rescaledImage)
