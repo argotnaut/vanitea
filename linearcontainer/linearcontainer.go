@@ -177,9 +177,7 @@ func (m LinearContainerModel) getNewComponentSize(componentIdx int, containerSiz
 		// Use as much of the WindowSizeMsg's hight as the Component's MaximumHeight will allow
 		newMsg.Height = component.GetClampedHeight(containerSize.Height)
 		newMsg.Width = component.GetClampedWidth(newSize)
-		// if the component shrinks to its content
-		//	get the width of its content at the proposed newMsg size
-		//  and set the newMsg width to that width
+
 		if component.ShrinkToContent() {
 			widthOfContentAtNewSize := lipgloss.Width(m.viewComponentAtSize(*component, newMsg))
 			if widthOfContentAtNewSize < newMsg.Width {
@@ -187,11 +185,17 @@ func (m LinearContainerModel) getNewComponentSize(componentIdx int, containerSiz
 				hitMaxSize = true
 			}
 		}
-
 	} else {
 		// Use as much of the WindowSizeMsg's width as the Component's MaximumWidth will allow
 		newMsg.Width = component.GetClampedWidth(containerSize.Width)
 		newMsg.Height = component.GetClampedHeight(newSize)
+		if component.ShrinkToContent() {
+			heightOfContentAtNewSize := lipgloss.Height(m.viewComponentAtSize(*component, newMsg))
+			if heightOfContentAtNewSize < newMsg.Height {
+				newMsg.Height = component.GetClampedHeight(heightOfContentAtNewSize)
+				hitMaxSize = true
+			}
+		}
 	}
 	if newMsg.Width >= component.GetMaximumWidth() || newMsg.Height >= component.GetMaximumHeight() {
 		hitMaxSize = true
