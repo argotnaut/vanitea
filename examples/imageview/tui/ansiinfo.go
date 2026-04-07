@@ -43,7 +43,7 @@ func NewANSIInfoModel() (output ANSIInfoModel) {
 	output.container = lc.NewLinearContainerFromComponents(
 		[]*con.Component{
 			output.codeList.SetBorderStyle(con.NO_BORDER_STYLE),
-			output.image.SetFocusable(false),
+			output.image.SetFocusable(false).SetShrinkToContent(true),
 		},
 	).SetDirection(lc.HORIZONTAL)
 	return

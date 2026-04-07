@@ -86,6 +86,8 @@ type Component struct {
 	shortcutPosition int
 	// Any Actions associated with the component
 	actions []Action
+	// Will shrink to fit its content when layed-out
+	shrinkToContent bool
 }
 
 /*
@@ -364,6 +366,15 @@ func (m Component) GetSize() tea.WindowSizeMsg {
 	}
 }
 
+func (m Component) ShrinkToContent() bool {
+	return m.shrinkToContent
+}
+
+func (m *Component) SetShrinkToContent(input bool) *Component {
+	m.shrinkToContent = input
+	return m
+}
+
 /*
 This function calls Component.Model.Update function and returns
 the result. If the given message is a tea.WindowSizeMsg, it will
@@ -410,6 +421,13 @@ func limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
 	return style.Render(input)
 }
 
+func limitSizeWithoutSetting(sizeLimit tea.WindowSizeMsg, input string) string {
+	return lipgloss.DefaultRenderer().NewStyle().
+		MaxWidth(sizeLimit.Width).
+		MaxHeight(sizeLimit.Height).
+		Render(input)
+}
+
 /*
 Renders the component's model according to it's current properties
 and with the correct focus styling
@@ -424,8 +442,13 @@ func (m Component) render(focused bool) string {
 	renderSize := m.GetSize()
 	renderSize.Height = max(0, renderSize.Height-currentStyle.GetVerticalFrameSize())
 	renderSize.Width = max(0, renderSize.Width-currentStyle.GetHorizontalFrameSize())
+	limitSizeFunction := limitSize
+	// DEBUG:
+	if m.ShrinkToContent() {
+		limitSizeFunction = limitSizeWithoutSetting
+	}
 	view := currentStyle.Render(
-		limitSize(
+		limitSizeFunction(
 			renderSize,
 			m.GetModel().View(),
 		),
