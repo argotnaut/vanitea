@@ -1,8 +1,6 @@
 package linearcontainer
 
 import (
-	"fmt"
-	"os"
 	"slices"
 	"sort"
 
@@ -10,7 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	con "github.com/argotnaut/vanitea/container"
-	utils "github.com/argotnaut/vanitea/utils"
 )
 
 const (
@@ -155,11 +152,7 @@ func (m LinearContainerModel) GetComponentStyleByIndex(componentIdx int) lipglos
 }
 
 func (m LinearContainerModel) viewComponentAtSize(component con.Component, size tea.WindowSizeMsg) string {
-	fmt.Fprintf(os.Stderr, "Old component size: %+v\n", component.GetSize())
-	component.SetSize(size)
-	newModel, _ := component.GetModel().Update(size)
-	component.SetModel(newModel)
-	fmt.Fprintf(os.Stderr, "New component size: %+v\n", component.GetSize())
+	component.Update(size)
 	return m.ViewComponent(&component)
 }
 
@@ -182,52 +175,26 @@ func (m LinearContainerModel) getNewComponentSize(componentIdx int, containerSiz
 	component := m.GetComponent(componentIdx)
 	if m.IsHorizontal() {
 		// Use as much of the WindowSizeMsg's hight as the Component's MaximumHeight will allow
-		newMsg.Height = utils.ClampInt(
-			containerSize.Height,
-			component.GetMinimumHeight(),
-			component.GetMaximumHeight(),
-		)
-		newMsg.Width = utils.ClampInt(
-			newSize,
-			component.GetMinimumWidth(),
-			component.GetMaximumWidth(),
-		)
+		newMsg.Height = component.GetClampedHeight(containerSize.Height)
+		newMsg.Width = component.GetClampedWidth(newSize)
 		// if the component shrinks to its content
 		//	get the width of its content at the proposed newMsg size
 		//  and set the newMsg width to that width
 		if component.ShrinkToContent() {
 			widthOfContentAtNewSize := lipgloss.Width(m.viewComponentAtSize(*component, newMsg))
-			fmt.Fprintf(os.Stderr, "newMsg.Width: %d\n", newMsg.Width)
-			fmt.Fprintf(os.Stderr, "Width of content at new size: %d\n", widthOfContentAtNewSize)
 			if widthOfContentAtNewSize < newMsg.Width {
-				newMsg.Width = utils.ClampInt(
-					widthOfContentAtNewSize,
-					component.GetMinimumWidth(),
-					component.GetMaximumWidth(),
-				)
-				fmt.Fprintf(os.Stderr, "Updated width of newMsg: %d\n", newMsg.Width)
+				newMsg.Width = component.GetClampedWidth(widthOfContentAtNewSize)
 				hitMaxSize = true
 			}
 		}
-		if newMsg.Width >= component.GetMaximumWidth() {
-			hitMaxSize = true
-		}
+
 	} else {
 		// Use as much of the WindowSizeMsg's width as the Component's MaximumWidth will allow
-		newMsg.Width = utils.ClampInt(
-			containerSize.Width,
-			component.GetMinimumWidth(),
-			component.GetMaximumWidth(),
-		)
-
-		newMsg.Height = utils.ClampInt(
-			newSize,
-			component.GetMinimumHeight(),
-			component.GetMaximumHeight(),
-		)
-		if newMsg.Height >= component.GetMaximumHeight() {
-			hitMaxSize = true
-		}
+		newMsg.Width = component.GetClampedWidth(containerSize.Width)
+		newMsg.Height = component.GetClampedHeight(newSize)
+	}
+	if newMsg.Width >= component.GetMaximumWidth() || newMsg.Height >= component.GetMaximumHeight() {
+		hitMaxSize = true
 	}
 	return
 }

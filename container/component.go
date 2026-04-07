@@ -366,6 +366,22 @@ func (m Component) GetSize() tea.WindowSizeMsg {
 	}
 }
 
+func (m Component) GetClampedHeight(inputHeight int) int {
+	return utils.ClampInt(
+		inputHeight,
+		m.GetMinimumHeight(),
+		m.GetMaximumHeight(),
+	)
+}
+
+func (m Component) GetClampedWidth(inputWidth int) int {
+	return utils.ClampInt(
+		inputWidth,
+		m.GetMinimumWidth(),
+		m.GetMaximumWidth(),
+	)
+}
+
 func (m Component) ShrinkToContent() bool {
 	return m.shrinkToContent
 }
