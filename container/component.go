@@ -382,10 +382,18 @@ func (m Component) GetClampedWidth(inputWidth int) int {
 	)
 }
 
+/*
+Whether the component should be given more space than its
+model will use (when being layed-out)
+*/
 func (m Component) ShrinkToContent() bool {
 	return m.shrinkToContent
 }
 
+/*
+Sets whether the component should be given more space than its
+model will use (when being layed-out)
+*/
 func (m *Component) SetShrinkToContent(input bool) *Component {
 	m.shrinkToContent = input
 	return m
@@ -429,19 +437,14 @@ Truncates the given TUI element to a width and height given by a tea.WindowSizeM
 sizeLimit: tea.WindowSizeMsg - The width and height to truncate the TUI element to
 input: string - The TUI element to truncate
 */
-func limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
+func (m Component) limitSize(sizeLimit tea.WindowSizeMsg, input string) string {
 	style := lipgloss.DefaultRenderer().NewStyle().
 		MaxWidth(sizeLimit.Width).
-		Width(sizeLimit.Width).
 		MaxHeight(sizeLimit.Height)
+	if !m.ShrinkToContent() {
+		style = style.Width(sizeLimit.Width)
+	}
 	return style.Render(input)
-}
-
-func limitSizeWithoutSetting(sizeLimit tea.WindowSizeMsg, input string) string {
-	return lipgloss.DefaultRenderer().NewStyle().
-		MaxWidth(sizeLimit.Width).
-		MaxHeight(sizeLimit.Height).
-		Render(input)
 }
 
 /*
@@ -458,13 +461,8 @@ func (m Component) render(focused bool) string {
 	renderSize := m.GetSize()
 	renderSize.Height = max(0, renderSize.Height-currentStyle.GetVerticalFrameSize())
 	renderSize.Width = max(0, renderSize.Width-currentStyle.GetHorizontalFrameSize())
-	limitSizeFunction := limitSize
-	// DEBUG:
-	if m.ShrinkToContent() {
-		limitSizeFunction = limitSizeWithoutSetting
-	}
 	view := currentStyle.Render(
-		limitSizeFunction(
+		m.limitSize(
 			renderSize,
 			m.GetModel().View(),
 		),
@@ -490,10 +488,10 @@ func (m Component) render(focused bool) string {
 	startOfLastLine := strings.LastIndex(view, "\n") + len("\n") // The start of the last line, which should be the bottom of the border
 
 	sizeLimit := tea.WindowSizeMsg{Width: lipgloss.Width(view[:endOfFirstLine]) - 2, Height: 1}
-	topRightText := strings.TrimSpace(limitSize(sizeLimit, getTextForCorner(TOP_RIGHT)))
-	topLeftText := strings.TrimSpace(limitSize(sizeLimit, getTextForCorner(TOP_LEFT)))
-	bottomLeftText := strings.TrimSpace(limitSize(sizeLimit, getTextForCorner(BOTTOM_LEFT)))
-	bottomRightText := strings.TrimSpace(limitSize(sizeLimit, getTextForCorner(BOTTOM_RIGHT)))
+	topRightText := strings.TrimSpace(m.limitSize(sizeLimit, getTextForCorner(TOP_RIGHT)))
+	topLeftText := strings.TrimSpace(m.limitSize(sizeLimit, getTextForCorner(TOP_LEFT)))
+	bottomLeftText := strings.TrimSpace(m.limitSize(sizeLimit, getTextForCorner(BOTTOM_LEFT)))
+	bottomRightText := strings.TrimSpace(m.limitSize(sizeLimit, getTextForCorner(BOTTOM_RIGHT)))
 
 	var output strings.Builder
 

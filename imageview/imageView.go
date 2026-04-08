@@ -2,7 +2,6 @@ package imageview
 
 import (
 	"image"
-	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -29,17 +28,6 @@ func NewImageViewModelFromBytes(imageBytes []byte) (output ImageViewModel) {
 	output.imageFrames = imageFrames
 	output.RerenderImage(output.currentDimensions)
 	return
-}
-
-/*
-Returns an ImageViewModel with image bytes from an http request to the given URL
-*/
-func NewImageViewModelFromURL(imageURL string) ImageViewModel {
-	newImageBytes, err := getImageBytesFromURL(imageURL)
-	if err != nil {
-		log.Fatalf("error getting the image bytes from the URL: %s - %v", imageURL, err)
-	}
-	return NewImageViewModelFromBytes(newImageBytes)
 }
 
 /*

@@ -1,3 +1,6 @@
+/*
+This file is largely boilerplate for a TUI list using bubbletea
+*/
 package tui
 
 import (

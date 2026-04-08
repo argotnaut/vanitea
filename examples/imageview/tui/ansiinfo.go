@@ -11,16 +11,23 @@ import (
 )
 
 //go:embed terminal.jpg
-var terminalImage []byte
+var terminalImage []byte // https://en.wikipedia.org/wiki/File:DEC_VT100_terminal.jpg
 
+/*
+A TUI component that lists ANSI escape codes. This is an example of how a user interface might be layed-out
+*/
 type ANSIInfoModel struct {
-	codeList  *con.Component
-	image     *con.Component
-	container *lc.LinearContainerModel
+	codeList  *con.Component           // The list of ANSI codes on the left of the component
+	image     *con.Component           // The image of a DEC VT100 terminal
+	container *lc.LinearContainerModel // The linear container which lays-out the above components
 }
 
+/*
+Returns an ANSIInfoModel initialized with some default values
+*/
 func NewANSIInfoModel() (output ANSIInfoModel) {
 
+	// Initialize the TUI list items
 	codeListItems := []list.Item{
 		codeItem{title: "ESC N", desc: "Single Shift Two"},
 		codeItem{title: "ESC O", desc: "Single Shift Three"},
@@ -32,18 +39,22 @@ func NewANSIInfoModel() (output ANSIInfoModel) {
 		codeItem{title: "ESC ^", desc: "Privacy Message"},
 		codeItem{title: "ESC _", desc: "Application Program Command"},
 	}
+	// create the TUI list
 	codeListModel := con.ComponentFromModel(
 		codeList{list: list.New(codeListItems, list.NewDefaultDelegate(), 0, 0)},
 	)
 	output.codeList = codeListModel
 
+	// create the TUI of the terminal image
 	output.image = con.ComponentFromModel(
 		iv.NewImageViewModelFromBytes(terminalImage),
 	)
+
+	// add both the list and the image components to a new linear container
 	output.container = lc.NewLinearContainerFromComponents(
 		[]*con.Component{
 			output.codeList.SetBorderStyle(con.NO_BORDER_STYLE),
-			output.image.SetFocusable(false).SetShrinkToContent(true),
+			output.image.SetFocusable(false).SetShrinkToContent(true), // the image component shouldn't grow beyond the size of the image that can be displayed
 		},
 	).SetDirection(lc.HORIZONTAL)
 	return
