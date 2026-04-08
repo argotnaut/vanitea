@@ -1,16 +1,16 @@
 package main
 
 import (
+	af "github.com/argotnaut/vanitea/appframe"
 	iv "github.com/argotnaut/vanitea/examples/imageview/tui"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
-	/*
-		Runs the action example code from ansiinfo.go
-	*/
 	ansiinfo := iv.NewANSIInfoModel()
-	_, err := tea.NewProgram(ansiinfo, tea.WithAltScreen()).Run()
+	appFrame := af.NewAppFrame(ansiinfo.GetComponents())
+	_, err := tea.NewProgram(appFrame, tea.WithAltScreen()).Run()
 	if err != nil {
 		panic(err)
 	}
