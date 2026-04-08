@@ -6,9 +6,7 @@ import (
 	"image"
 	"image/draw"
 	"image/gif"
-	"io"
 	"log"
-	"net/http"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,16 +15,6 @@ import (
 	"github.com/mat/besticon/ico"
 )
 
-const RESIZE_OFFSET_Y = 8
-const RESIZE_FACTOR_Y = 2
-const RESIZE_FACTOR_X = 1
-const DEFAULT_TERM_COLS = 80
-const DEFAULT_TERM_ROWS = 24
-const FPS = 15
-
-const ANSI_CURSOR_UP = "\x1B[%dA"
-const ANSI_CURSOR_HIDE = "\x1B[?25l"
-const ANSI_CURSOR_SHOW = "\x1B[?25h"
 const ANSI_BG_TRANSPARENT_COLOR = "\x1b[0;39;49m"
 const ANSI_BG_RGB_COLOR = "\x1b[48;2;%d;%d;%dm"
 const ANSI_FG_TRANSPARENT_COLOR = "\x1b[0m "
@@ -35,6 +23,11 @@ const ANSI_RESET = "\x1b[0m"
 
 var InterpolationType = imaging.Lanczos
 
+/*
+Decodes a given slice of bytes into grid of color.Color values. The slice of bytes
+is expected to represent an image of one of the following types:
+gif, png, jpeg, bmp, or x-icon
+*/
 func decode(buf []byte) []image.Image {
 	mime, err := mimetype.DetectReader(bytes.NewReader(buf))
 	if err != nil {
@@ -116,6 +109,16 @@ func decode(buf []byte) []image.Image {
 	return frames
 }
 
+/*
+Given an image and a target size, returns an image scaled to that size.
+
+frames: []image.Image - A slice of grids of color.Color values, representing the image data
+
+targetSize: tea.WindowSizeMsg - The desired size of the output image. Size here is measured
+
+	in "pixels" where, because of the way the image is rendered with ASCII characters, a "pixel"
+	is 1x the width and 0.5x the height of a cell in the terminal
+*/
 func scale(frames []image.Image, targetSize tea.WindowSizeMsg) []image.Image {
 	type data struct {
 		i  int
@@ -140,6 +143,9 @@ func scale(frames []image.Image, targetSize tea.WindowSizeMsg) []image.Image {
 	return r
 }
 
+/*
+Given an image in the form of a slice of image.Image, return the ANSI-escaped 2D string slice
+*/
 func escape(frames []image.Image) [][]string {
 	type data struct {
 		i   int
@@ -194,6 +200,11 @@ func escape(frames []image.Image) [][]string {
 	return escaped
 }
 
+/*
+Given the current image dimensions and the bounding dimensions it needs
+to fit into, this function returns the largest dimensions the image could
+have while preserving its aspect ratio
+*/
 func rescaleImageToBounds(imageDimensions tea.WindowSizeMsg, bounds tea.WindowSizeMsg) (output tea.WindowSizeMsg) {
 	resizeRatio := min(
 		float64(bounds.Width)/float64(imageDimensions.Width),
@@ -204,49 +215,46 @@ func rescaleImageToBounds(imageDimensions tea.WindowSizeMsg, bounds tea.WindowSi
 	return output
 }
 
-func getScaledImage(image []byte, size *tea.WindowSizeMsg) string {
-	const ERROR_OUTPUT = "[-]"
+/*
+Decodes a slice of bytes representing an image and returns a slice of
+image.Image
+*/
+func decodeImageBytes(image []byte) (output []image.Image, err error) {
 	if len(image) < 1 {
-		return ERROR_OUTPUT
+		return output, fmt.Errorf("image bytes slice was empty")
 	}
 	decodedImages := decode(image)
-	if len(decodedImages) < 1 {
+	return decodedImages, nil
+}
+
+/*
+Returns the width and height dimensions of a given image
+*/
+func getImageDimensions(image image.Image) tea.WindowSizeMsg {
+	return tea.WindowSizeMsg{
+		Height: image.Bounds().Dy(),
+		Width:  image.Bounds().Dx(),
+	}
+}
+
+/*
+Given an image and a target size, this function returns the image as
+an ANSI-escaped ASCII pixel string
+*/
+func getScaledImage(frames []image.Image, size *tea.WindowSizeMsg) string {
+	const ERROR_OUTPUT = "[-]"
+	if len(frames) < 1 {
 		return ERROR_OUTPUT
 	}
-	imageDimensions := tea.WindowSizeMsg{
-		Height: decodedImages[0].Bounds().Dy(),
-		Width:  decodedImages[0].Bounds().Dx(),
-	}
+	imageDimensions := getImageDimensions(frames[0])
 	if size != nil {
 		size.Height *= 2 // multiply height by two to convert from characters to "pixels"
 		imageDimensions = rescaleImageToBounds(imageDimensions, *size)
 	}
 	rescaledImage := scale(
-		decodedImages,
+		frames,
 		imageDimensions,
 	)
 	output := escape(rescaledImage)
 	return strings.Join(output[0], "")
-}
-
-func getImageBytesFromURL(URL string) ([]byte, error) {
-	var resBody []byte
-	if strings.TrimSpace(URL) == "" {
-		return resBody, fmt.Errorf("url was empty")
-	}
-	req, err := http.NewRequest(http.MethodGet, URL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("client: could not create request: %s", err.Error())
-	}
-	req.Header.Set("User-Agent", "")
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("client: error making http request: %s", err)
-	}
-	resBody, err = io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("client: could not read response body: %s", err)
-	}
-	return resBody, nil
 }

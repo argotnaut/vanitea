@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	con "github.com/argotnaut/vanitea/container"
-	utils "github.com/argotnaut/vanitea/utils"
 )
 
 const (
@@ -153,8 +152,19 @@ func (m LinearContainerModel) GetComponentStyleByIndex(componentIdx int) lipglos
 }
 
 /*
-Sets the size of one of LinearContainerModel's components according to the available space
-laid out by containerSize and the Component's max/min width/height
+Returns the string rendering of the given component (including the border given to it by
+the linear container) if it were to be resized to the given size
+*/
+func (m LinearContainerModel) viewComponentAtSize(component con.Component, size tea.WindowSizeMsg) string {
+	component.Update(size)
+	return m.ViewComponent(&component)
+}
+
+/*
+Given a target size, the returns the size a specific component should be set to, according to
+the available space laid out by containerSize and the Component's max/min width/height. It also
+includes logic to keep a component from growing beyond the maximum dimensions of its content,
+if the component has shrinkToContent set to true
 
 componentIdx: int - The index of the component in the LinearContainerModel's
 list of Components
@@ -166,37 +176,36 @@ newSize: int - The new size of the major axis of the Component (if the
 LinearContainerModel has direction horizontal, the new size would
 refer to the width of components)
 */
-func (m LinearContainerModel) getNewComponentSize(componentIdx int, containerSize tea.WindowSizeMsg, newSize int) tea.WindowSizeMsg {
-	newMsg := containerSize
-	component := m.GetComponent(componentIdx)
+func (m LinearContainerModel) getNewComponentSize(componentIdx int, containerSize tea.WindowSizeMsg, newSize int) (newMsg tea.WindowSizeMsg, hitMaxSize bool) {
+	newMsg = containerSize
+	component := m.GetComponent(componentIdx) // For brevity, get the component at componentIdx
 	if m.IsHorizontal() {
-		// Use as much of the WindowSizeMsg's hight as the Component's MaximumHeight will allow
-		newMsg.Height = utils.ClampInt(
-			containerSize.Height,
-			component.GetMinimumHeight(),
-			component.GetMaximumHeight(),
-		)
+		newMsg.Height = component.GetClampedHeight(containerSize.Height) // Height isn't the major axis, so use as much of the WindowSizeMsg's hight as the Component's MaximumHeight will allow
+		newMsg.Width = component.GetClampedWidth(newSize)                // Width is the major axis, so try to set the width of the new dimensions to newSize
 
-		newMsg.Width = utils.ClampInt(
-			newSize,
-			component.GetMinimumWidth(),
-			component.GetMaximumWidth(),
-		)
+		if component.ShrinkToContent() {
+			widthOfContentAtNewSize := lipgloss.Width(m.viewComponentAtSize(*component, newMsg)) // Calculate what the width of the components view would be at the proposed new size
+			if widthOfContentAtNewSize < newMsg.Width {                                          // If resizing this component to this new size would leave some empty space when its model had rendered
+				newMsg.Width = component.GetClampedWidth(widthOfContentAtNewSize) // Set its width to however much its model would actually use
+				hitMaxSize = true
+			}
+		}
 	} else {
-		// Use as much of the WindowSizeMsg's width as the Component's MaximumWidth will allow
-		newMsg.Width = utils.ClampInt(
-			containerSize.Width,
-			component.GetMinimumWidth(),
-			component.GetMaximumWidth(),
-		)
 
-		newMsg.Height = utils.ClampInt(
-			newSize,
-			component.GetMinimumHeight(),
-			component.GetMaximumHeight(),
-		)
+		newMsg.Width = component.GetClampedWidth(containerSize.Width) // Width isn't the major axis, so use as much of the WindowSizeMsg's width as the Component's MaximumWidth will allow
+		newMsg.Height = component.GetClampedHeight(newSize)           // Height is the major axis, so try to set the height of the new dimensions to newSize
+		if component.ShrinkToContent() {
+			heightOfContentAtNewSize := lipgloss.Height(m.viewComponentAtSize(*component, newMsg)) // Calculate what the height of the components view would be at the proposed new size
+			if heightOfContentAtNewSize < newMsg.Height {                                          // If resizing this component to this new size would leave some empty space when its model had rendered
+				newMsg.Height = component.GetClampedHeight(heightOfContentAtNewSize) // Set its height to however much its model would actually use
+				hitMaxSize = true
+			}
+		}
 	}
-	return newMsg
+	if newMsg.Width >= component.GetMaximumWidth() || newMsg.Height >= component.GetMaximumHeight() {
+		hitMaxSize = true
+	}
+	return
 }
 
 /*
@@ -229,7 +238,7 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 
 	// 1. set every component to its minimum width
 	for i := range len(m.GetComponents()) {
-		newSize := m.getNewComponentSize(i, containerSize, m.getMinimumSize(*(m.GetComponent(i))))
+		newSize, _ := m.getNewComponentSize(i, containerSize, m.getMinimumSize(*(m.GetComponent(i))))
 		sizes = append(sizes, newSize)
 		// if the component can still grow
 		if m.GetSizeAlongMajorAxis(newSize) < m.getMaximumSize(*(m.GetComponent(i))) {
@@ -261,14 +270,14 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 		for growableIdx := 0; growableIdx < len(growableComponents); growableIdx++ {
 			// try to grow each growable component to an even share of the remaining space
 			componentIdx := growableComponents[growableIdx] // get the index of the component in m.Components
-			newSize := m.getNewComponentSize(
+			newSize, hitMaxSize := m.getNewComponentSize(
 				componentIdx,
 				containerSize,
 				m.GetSizeAlongMajorAxis(sizes[componentIdx])+evenShare,
 			)
 			sizes[componentIdx] = newSize
 			// if the component hit its maximum size
-			if m.GetSizeAlongMajorAxis(newSize) >= m.getMaximumSize(*(m.GetComponent(componentIdx))) {
+			if hitMaxSize {
 				// remove it from the list of growable components
 				growableComponents = slices.Delete(
 					growableComponents,
@@ -286,7 +295,7 @@ func (m *LinearContainerModel) ResizeComponents(containerSize tea.WindowSizeMsg)
 	if len(growableComponents) > 0 && evenShare < 1 {
 		// give all remaining space to the growable with the highest priority
 		componentIdx := growableComponents[0] // get the index of the component in m.Components
-		newSize := m.getNewComponentSize(
+		newSize, _ := m.getNewComponentSize(
 			componentIdx,
 			containerSize,
 			m.GetSizeAlongMajorAxis(sizes[componentIdx])+remainingSpace,
@@ -328,7 +337,7 @@ func (m LinearContainerModel) GetFullContainerSize() (output tea.WindowSizeMsg) 
 	return
 }
 
-func (m LinearContainerModel) ViewComponent(model tea.Model, component *con.Component) string {
+func (m LinearContainerModel) ViewComponent(component *con.Component) string {
 	if lc, isLC := component.GetModel().(LinearContainerModel); isLC {
 		// if component is a LinearContainerModel, make sure it gets m's FocusHandler
 		lc.SetFocusHandler(
@@ -372,7 +381,7 @@ func (m LinearContainerModel) View() (s string) {
 	var views []string
 	// Collect all the individual renderings for all the components
 	for _, component := range m.GetVisibleComponents() {
-		views = append(views, m.ViewComponent(component.GetModel(), component))
+		views = append(views, m.ViewComponent(component))
 	}
 	// Join component renderings together
 	if m.IsHorizontal() {
