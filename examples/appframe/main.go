@@ -9,7 +9,7 @@ import (
 
 func main() {
 	ansiinfo := iv.NewANSIInfoModel()
-	appFrame := af.NewAppFrame(ansiinfo.GetComponents())
+	appFrame := af.NewAppFrame("ASCI Info Page", ansiinfo.GetComponents())
 	_, err := tea.NewProgram(appFrame, tea.WithAltScreen()).Run()
 	if err != nil {
 		panic(err)

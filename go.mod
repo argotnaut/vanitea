@@ -30,6 +30,7 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9
+	github.com/kevm/bubbleo v0.1.5
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mat/besticon v3.12.0+incompatible

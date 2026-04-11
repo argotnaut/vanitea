@@ -4,9 +4,12 @@ This file is largely boilerplate for a TUI list using bubbletea
 package tui
 
 import (
+	"github.com/argotnaut/vanitea/navshell"
+	"github.com/argotnaut/vanitea/placeholder"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/kevm/bubbleo/navstack"
 )
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
@@ -30,9 +33,17 @@ func (m codeList) Init() tea.Cmd {
 func (m codeList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" {
+		switch msg.String() {
+		case "ctrl+c":
 			return m, tea.Quit
+		case "enter":
+			styleLavender := lipgloss.NewStyle().Background(lipgloss.Color("#785ef0"))
+			return m, navshell.GetNavShell().Navstack.Push(navstack.NavigationItem{
+				Model: placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
+				Title: "Newpage",
+			})
 		}
+
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
