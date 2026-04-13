@@ -38,9 +38,13 @@ func (m codeList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			styleLavender := lipgloss.NewStyle().Background(lipgloss.Color("#785ef0"))
-			return m, navshell.GetNavShell().Navstack.Push(navstack.NavigationItem{
+			newPageTitle := "Newpage"
+			if m.list.SelectedItem().FilterValue() != "" {
+				newPageTitle = m.list.SelectedItem().FilterValue()
+			}
+			return m, navshell.Push(navstack.NavigationItem{
 				Model: placeholder.GetPlaceholder(&styleLavender, nil, nil, nil),
-				Title: "Newpage",
+				Title: newPageTitle,
 			})
 		}
 

@@ -4,6 +4,8 @@
 package navshell
 
 import (
+	"fmt"
+	"os"
 	"sync"
 
 	"github.com/argotnaut/vanitea/colors"
@@ -11,7 +13,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kevm/bubbleo/breadcrumb"
 	"github.com/kevm/bubbleo/navstack"
-	cmdutils "github.com/kevm/bubbleo/utils"
 	"github.com/kevm/bubbleo/window"
 )
 
@@ -19,7 +20,6 @@ type NavShellModel struct {
 	Navstack               *navstack.Model
 	Breadcrumb             breadcrumb.Model
 	size                   tea.WindowSizeMsg
-	window                 *window.Model
 	navigationForwardStack []navstack.NavigationItem
 }
 
@@ -38,7 +38,6 @@ func newNavShell() *NavShellModel {
 	return &NavShellModel{
 		Navstack:   &ns,
 		Breadcrumb: bc,
-		window:     &w,
 	}
 }
 
@@ -76,20 +75,39 @@ func Backward() {
 	UpdateSingleton(cmd)
 }
 
-// Init determines the size of the widow used by the navigation stack.
-func (m NavShellModel) Init() tea.Cmd {
-
-	w, h := m.Breadcrumb.Styles.Frame.GetFrameSize()
-	m.window.SideOffset = w
-	m.window.TopOffset = h
-
-	return cmdutils.Cmdize(m.window.GetWindowSizeMsg())
+func (m *NavShellModel) clearNavigationForwardStack() {
+	m.navigationForwardStack = nil
 }
 
-// Update passes messages to the navigation stack.
+func Push(item navstack.NavigationItem) tea.Cmd {
+	pushCmd := GetNavShell().Navstack.Push(item)
+	fmt.Fprintf(os.Stderr, "navShell.go: Push: instance navForwardStack: %+v\n", instance.navigationForwardStack)
+	instance.clearNavigationForwardStack()
+	fmt.Fprintf(os.Stderr, "navShell.go: Push: updated instance navForwardStack: %+v\n", instance.navigationForwardStack)
+	return pushCmd
+}
+
+func (m NavShellModel) Init() tea.Cmd {
+	return nil
+}
+
 func (m NavShellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
-	cmds = append(cmds, m.Navstack.Update(msg))
+	switch msg := msg.(type) {
+	/*
+		NOTE: This switch statement exists to circumvent a value/pointer
+		assignment issue found at https://github.com/KevM/bubbleo/blob/10a0ecea8938a88cf6a2da8f97f83286660dd9de/navstack/model.go#L167
+	*/
+	case tea.WindowSizeMsg, navstack.ReloadCurrent, navstack.PopNavigation, navstack.PushNavigation:
+		cmds = append(cmds, GetNavShell().Navstack.Update(msg))
+	default:
+		top := GetNavShell().Navstack.Top()
+		if top != nil {
+			um, cmd := top.Update(msg)
+			*top = um.(navstack.NavigationItem)
+			cmds = append(cmds, cmd)
+		}
+	}
 	newBreadcrumb, cmd := m.Breadcrumb.Update(msg)
 	m.Breadcrumb = newBreadcrumb.(breadcrumb.Model)
 	cmds = append(cmds, cmd)
