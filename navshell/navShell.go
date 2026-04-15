@@ -4,8 +4,6 @@
 package navshell
 
 import (
-	"fmt"
-	"os"
 	"sync"
 
 	"github.com/argotnaut/vanitea/colors"
@@ -36,9 +34,15 @@ func newNavShell() *NavShellModel {
 		Padding(0, 1)
 
 	return &NavShellModel{
-		Navstack:   &ns,
-		Breadcrumb: bc,
+		Navstack:               &ns,
+		Breadcrumb:             bc,
+		navigationForwardStack: make([]navstack.NavigationItem, 0),
 	}
+}
+
+func (m NavShellModel) forwardStackIsEmpty() bool {
+	length := len(m.navigationForwardStack)
+	return length < 1 || instance.navigationForwardStack[length-1].Model == nil
 }
 
 var (
@@ -54,36 +58,32 @@ func GetNavShell() NavShellModel {
 }
 
 func Forward() {
-	m := instance
-	length := len(m.navigationForwardStack)
+	length := len(instance.navigationForwardStack)
 	var cmd tea.Cmd
-	if length > 0 {
-		topOfForwardStack := m.navigationForwardStack[length-1]
-		m.navigationForwardStack = m.navigationForwardStack[:length-1]
-		cmd = m.Navstack.Push(topOfForwardStack)
+	if !instance.forwardStackIsEmpty() {
+		topOfForwardStack := instance.navigationForwardStack[length-1]
+		instance.navigationForwardStack = instance.navigationForwardStack[:length-1]
+		cmd = instance.Navstack.Push(topOfForwardStack)
 	}
 	UpdateSingleton(cmd)
 }
 
 func Backward() {
-	m := instance
 	var cmd tea.Cmd
-	if m.Navstack.Top() != nil && len(m.Navstack.StackSummary()) > 1 {
-		m.navigationForwardStack = append(m.navigationForwardStack, *m.Navstack.Top())
-		cmd = m.Navstack.Pop()
+	if instance.Navstack.Top() != nil && len(instance.Navstack.StackSummary()) > 1 {
+		instance.navigationForwardStack = append(instance.navigationForwardStack, *instance.Navstack.Top())
+		cmd = instance.Navstack.Pop()
 	}
 	UpdateSingleton(cmd)
 }
 
-func (m *NavShellModel) clearNavigationForwardStack() {
-	m.navigationForwardStack = nil
+func clearNavigationForwardStack() {
+	clear(instance.navigationForwardStack)
 }
 
 func Push(item navstack.NavigationItem) tea.Cmd {
 	pushCmd := GetNavShell().Navstack.Push(item)
-	fmt.Fprintf(os.Stderr, "navShell.go: Push: instance navForwardStack: %+v\n", instance.navigationForwardStack)
-	instance.clearNavigationForwardStack()
-	fmt.Fprintf(os.Stderr, "navShell.go: Push: updated instance navForwardStack: %+v\n", instance.navigationForwardStack)
+	clearNavigationForwardStack()
 	return pushCmd
 }
 
