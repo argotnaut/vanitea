@@ -34,12 +34,13 @@ func NewImageViewModelFromBytes(imageBytes []byte) (output ImageViewModel) {
 Rerenders the image's bytes in ASCII characters according to the given dimensions
 and sets the ImageViewModel's stringifiedImage to the result
 */
-func (m *ImageViewModel) RerenderImage(newDimensions tea.WindowSizeMsg) {
+func (m *ImageViewModel) RerenderImage(newDimensions tea.WindowSizeMsg) *ImageViewModel {
 	widthHasChanged := m.currentDimensions.Width != newDimensions.Width
 	heightHasChanged := m.currentDimensions.Height != newDimensions.Height
 	if widthHasChanged || heightHasChanged {
 		m.stringifiedImage = getScaledImage(m.imageFrames, &newDimensions)
 	}
+	return m
 }
 
 func (m ImageViewModel) Init() tea.Cmd {

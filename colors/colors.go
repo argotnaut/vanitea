@@ -10,4 +10,7 @@ const (
 	UNFOCUSED_BORDER             = "#AAAAAA" // light grey
 	SELECTLIST_DESELECTED        = "241"     // dark grey
 	SELECTLIST_SELECTED          = "69"      // lavender
+	BREADCRUMB_ITEM_BACKGROUND   = "#363137" // dark grey
+	BREADCRUMB_BACKGROUND        = "#444244" // dark grey
+	BREADCRUMB_FOREGROUND        = "#e5d9ee" // lavender-white
 )

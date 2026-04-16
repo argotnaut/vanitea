@@ -60,6 +60,10 @@ func NewANSIInfoModel() (output ANSIInfoModel) {
 	return
 }
 
+func (m ANSIInfoModel) GetComponents() []*con.Component {
+	return []*con.Component{m.codeList, m.image}
+}
+
 func (m ANSIInfoModel) Init() tea.Cmd {
 	return m.container.Init()
 }

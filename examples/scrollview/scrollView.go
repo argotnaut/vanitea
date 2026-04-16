@@ -3,8 +3,9 @@ package main
 import (
 	_ "embed"
 
-	"github.com/argotnaut/vanitea/examples"
+	"github.com/argotnaut/vanitea/imageview"
 	sv "github.com/argotnaut/vanitea/scrollview"
+	"github.com/argotnaut/vanitea/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -14,15 +15,20 @@ var testImageBytes []byte
 
 func main() {
 	// Get the test image as a byte array in the form of colored ascii art
-	output := examples.GetScaledImage(testImageBytes, 1)
-	// Create the scrollview
-	width, height, err := examples.GetTerminalSize()
+	pearlEaringModel := imageview.NewImageViewModelFromBytes(
+		testImageBytes,
+	)
+	pearlEaringModel.RerenderImage(
+		tea.WindowSizeMsg{Height: 20, Width: 40},
+	)
+	output := pearlEaringModel.View() // Create the scrollview
+	width, height, err := utils.GetTerminalSize()
 	if err != nil {
 		panic(err)
 	}
-	colorViewer := sv.GetScrollView(width, height, output)
+	scrollViewModel := sv.GetScrollView(width, height, output)
 	// run the program
-	_, err = tea.NewProgram(colorViewer, tea.WithAltScreen()).Run()
+	_, err = tea.NewProgram(scrollViewModel, tea.WithAltScreen()).Run()
 	if err != nil {
 		panic(err)
 	}
