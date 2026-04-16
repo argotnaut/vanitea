@@ -37,6 +37,10 @@ func (m codeList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
+			/*
+				When the user presses enter with an escape code selected,
+				push a placeholder view onto the navstack
+			*/
 			styleLavender := lipgloss.NewStyle().Background(lipgloss.Color("#785ef0"))
 			newPageTitle := "Newpage"
 			if m.list.SelectedItem().FilterValue() != "" {

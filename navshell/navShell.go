@@ -1,6 +1,3 @@
-// Package Shell is a basic wrapper around the navstack and breadcrumb packages
-// It provides a basic navigation mechanism while showing breadcrumb view of where the user is
-// within the navigation stack.
 package navshell
 
 import (
@@ -14,10 +11,19 @@ import (
 	"github.com/kevm/bubbleo/window"
 )
 
+/*
+A singleton that tracks a navstack and the components
+used to display its state to the user
+*/
 type NavShellModel struct {
-	Navstack               *navstack.Model
-	Breadcrumb             breadcrumb.Model
-	size                   tea.WindowSizeMsg
+	// The tea.Model that handles the navigation stack
+	Navstack *navstack.Model
+	// The tea.Model that displays the path of the navigation stack to the user
+	Breadcrumb breadcrumb.Model
+	// The size of the window (used for properly sizing the breadcrumb)
+	size tea.WindowSizeMsg
+	// The list of components that were navigated "back" from and which
+	// can be navigated "forward" to
 	navigationForwardStack []navstack.NavigationItem
 }
 
@@ -46,10 +52,14 @@ func (m NavShellModel) forwardStackIsEmpty() bool {
 }
 
 var (
-	instance *NavShellModel
-	once     sync.Once
+	instance *NavShellModel // The singleton instance
+	once     sync.Once      // Used to ensure the NavShellModel is only instantiated once
 )
 
+/*
+Returns the current instance of the NavShellModel, or
+creates one if it doesn't already exist
+*/
 func GetNavShell() NavShellModel {
 	once.Do(func() {
 		instance = newNavShell()
@@ -57,6 +67,9 @@ func GetNavShell() NavShellModel {
 	return *instance
 }
 
+/*
+Navigate forward through the navigation history
+*/
 func Forward() {
 	length := len(instance.navigationForwardStack)
 	var cmd tea.Cmd
@@ -68,6 +81,9 @@ func Forward() {
 	UpdateSingleton(cmd)
 }
 
+/*
+Navigate backward through the navigation history
+*/
 func Backward() {
 	var cmd tea.Cmd
 	if instance.Navstack.Top() != nil && len(instance.Navstack.StackSummary()) > 1 {
@@ -81,6 +97,10 @@ func clearNavigationForwardStack() {
 	clear(instance.navigationForwardStack)
 }
 
+/*
+Pushes the given navstack.NavigationItem onto the navstack, covering the old
+topmost component on the stack and clearing the forward navigation history
+*/
 func Push(item navstack.NavigationItem) tea.Cmd {
 	pushCmd := GetNavShell().Navstack.Push(item)
 	clearNavigationForwardStack()
@@ -118,6 +138,10 @@ func (m NavShellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+/*
+Updates the NavShellModel instance using the given tea.Msg and
+returns the resulting tea.Cmd
+*/
 func UpdateSingleton(msg tea.Msg) tea.Cmd {
 	newModel, cmd := GetNavShell().Update(msg)
 	if instance != nil {
@@ -126,7 +150,6 @@ func UpdateSingleton(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
-// View renders the breadcrumb and the navigation stack.
 func (m NavShellModel) View() string {
 	bc := m.Breadcrumb.View()
 	nav := m.Navstack.View()
