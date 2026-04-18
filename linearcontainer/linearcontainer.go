@@ -17,9 +17,9 @@ const (
 )
 
 type LinearContainerModel struct {
-	focusHandler        con.FocusHandler
-	componentComponents []*con.Component
-	direction           int
+	focusHandler con.FocusHandler
+	components   []*con.Component
+	direction    int
 }
 
 func NewLinearContainer() *LinearContainerModel {
@@ -30,7 +30,7 @@ func NewLinearContainer() *LinearContainerModel {
 
 func NewLinearContainerFromComponents(components []*con.Component) *LinearContainerModel {
 	newLinearContainer := NewLinearContainer()
-	newLinearContainer.componentComponents = components
+	newLinearContainer.components = components
 	newLinearContainer.SetFocusHandler(
 		newLinearContainer.GetFocusHandler(),
 	)
@@ -46,11 +46,18 @@ func (m LinearContainerModel) Init() tea.Cmd {
 }
 
 func (m LinearContainerModel) GetComponents() []*con.Component {
-	return m.componentComponents
+	return m.components
+}
+
+func (m LinearContainerModel) GetActions() (output []con.Action) {
+	for _, component := range m.components {
+		output = append(output, component.GetActions()...)
+	}
+	return output
 }
 
 func (m LinearContainerModel) GetVisibleComponents() (output []*con.Component) {
-	for _, component := range m.componentComponents {
+	for _, component := range m.components {
 		if !component.IsHidden() {
 			output = append(output, component)
 		}
