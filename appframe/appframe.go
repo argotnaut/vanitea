@@ -66,6 +66,11 @@ func NewAppFrame(appName string, components []*con.Component) (output AppFrame) 
 			newActions = append(newActions, actions...)
 			newActions = append(newActions, con.NewDefaultAction("exit", "Exit the program", "ctrl+c", nil, nil, nil))
 			newActions = append(newActions, navShellActions...)
+			topOfNavStack := navshell.GetNavShell().Navstack.Top().Model
+			switch topOfNavStack := topOfNavStack.(type) {
+			case con.Actionable:
+				newActions = append(newActions, topOfNavStack.GetActions()...)
+			}
 			return
 		},
 	)
