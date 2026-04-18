@@ -43,7 +43,28 @@ func NewANSIInfoModel() (output ANSIInfoModel) {
 	codeListModel := con.ComponentFromModel(
 		codeList{list: list.New(codeListItems, list.NewDefaultDelegate(), 0, 0)},
 	)
-	output.codeList = codeListModel
+
+	output.codeList = codeListModel.SetActions([]con.Action{
+		// Add an action for filtering the list (to show appframe's ability to run the actions of its container's childcomponents)
+		con.NewDefaultAction(
+			"filter",
+			"filter list",
+			"",
+			codeListModel,
+			func(c *con.Component) {
+				if codeList, isCodeList := c.GetModel().(codeList); isCodeList {
+					codeList.list.SetFilterState(list.Filtering)
+					c.SetModel(codeList)
+				}
+			},
+			func(c *con.Component) {
+				if codeList, isCodeList := c.GetModel().(codeList); isCodeList {
+					codeList.list.SetFilterState(list.Unfiltered)
+					c.SetModel(codeList)
+				}
+			},
+		),
+	})
 
 	// create the TUI of the terminal image
 	output.image = con.ComponentFromModel(

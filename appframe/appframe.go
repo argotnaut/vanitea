@@ -31,11 +31,6 @@ Initializes an AppFrame with the following components
 func NewAppFrame(appName string, components []*con.Component) (output AppFrame) {
 	// initialize main linear container (contains all the components except the action bar at the bottom)
 	container := lc.NewLinearContainerFromComponents(components)
-	// Get actions from linear container's components
-	var actions []con.Action
-	for _, comp := range container.GetComponents() {
-		actions = append(actions, comp.GetActions()...)
-	}
 	// initialize action bar
 	navShellForward := func(*con.Component) {
 		navshell.Forward()
@@ -63,14 +58,13 @@ func NewAppFrame(appName string, components []*con.Component) (output AppFrame) 
 	}
 	output.actionBar = actionbar.NewActionBarModel(
 		func() (newActions []con.Action) {
-			newActions = append(newActions, actions...)
-			newActions = append(newActions, con.NewDefaultAction("exit", "Exit the program", "ctrl+c", nil, nil, nil))
-			newActions = append(newActions, navShellActions...)
 			topOfNavStack := navshell.GetNavShell().Navstack.Top().Model
 			switch topOfNavStack := topOfNavStack.(type) {
 			case con.Actionable:
 				newActions = append(newActions, topOfNavStack.GetActions()...)
 			}
+			newActions = append(newActions, navShellActions...)
+			newActions = append(newActions, con.NewDefaultAction("exit", "Exit the program", "ctrl+c", nil, nil, nil))
 			return
 		},
 	)
