@@ -312,7 +312,12 @@ func (m *Component) SetShortcutPosition(shortcutPosition int) *Component {
 }
 
 func (m Component) GetActions() []Action {
-	return m.actions
+	output := m.actions
+	switch model := m.GetModel().(type) {
+	case Actionable:
+		output = append(output, model.GetActions()...)
+	}
+	return output
 }
 
 func (m *Component) SetActions(actions []Action) *Component {

@@ -236,12 +236,14 @@ func (m ActionBarModel) View() string {
 		endcap := highlightBackground.Render(" ? - help ")
 		shortcutStrings := []string{}
 		for _, action := range m.GetActions() {
-			shortcutStrings = append(
-				shortcutStrings,
-				highlightForeground.Render(
-					strings.TrimSpace(action.GetShortcut()),
-				)+" "+action.GetName(),
-			)
+			if len(strings.TrimSpace(action.GetShortcut())) > 0 {
+				shortcutStrings = append(
+					shortcutStrings,
+					highlightForeground.Render(
+						strings.TrimSpace(action.GetShortcut()),
+					)+" "+action.GetName(),
+				)
+			}
 		}
 		output := strings.TrimSpace(
 			lipgloss.DefaultRenderer().NewStyle().
