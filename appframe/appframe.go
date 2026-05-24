@@ -84,7 +84,10 @@ Call the Init functions of all the child components (including the
 actionBar, which will need it for the cursor to blink)
 */
 func (m AppFrame) Init() tea.Cmd {
-	return m.actionBar.Init()
+	return tea.Batch(
+		navshell.GetNavShell().Navstack.Top().Model.Init(),
+		m.actionBar.Init(),
+	)
 }
 
 func (m AppFrame) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
