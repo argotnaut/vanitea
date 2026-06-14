@@ -2,6 +2,7 @@ package vanitea
 
 import (
 	"slices"
+	"strings"
 
 	con "github.com/argotnaut/vanitea/container"
 	"github.com/argotnaut/vanitea/utils"
@@ -25,10 +26,6 @@ type ComponentList struct {
 		The index in the list of the component that currently has focus
 	*/
 	focusedIndex int
-	/*
-		The vertical position of the focused component in the height of the view
-	*/
-	focusedComponentPosition int
 	/*
 		The map of control keys
 	*/
@@ -85,31 +82,6 @@ func (m *ComponentList) FocusForward() *ComponentList {
 
 func (m *ComponentList) FocusBackward() *ComponentList {
 	return m.SetFocusIndex(m.focusedIndex - 1)
-}
-
-func (m ComponentList) getAlternatingComponents(startIdx int) (output []*con.Component) {
-	components := m.GetComponents()
-	if len(components) < 1 {
-		return
-	}
-	/*
-		build a slice of component pointers by alternatingly appending the component
-		before the startIdx, after the start Idx, before, after, etc.,
-		until either the start or end of the input slice is reached
-	*/
-	idx := startIdx
-	jumpDirection, jumpDistance := -1, 0
-	for jumpDistance <= len(components)*2 {
-		if idx > -1 && idx < len(components) {
-			output = append(output, components[idx])
-		} else {
-			output = append(output, nil)
-		}
-		jumpDistance++
-		jumpDirection *= -1
-		idx += jumpDistance * jumpDirection
-	}
-	return
 }
 
 func (m ComponentList) resizeComponentModelForStyle(component *con.Component, size tea.WindowSizeMsg) tea.Cmd {
@@ -208,6 +180,16 @@ func limitHeight(input string, height int) string {
 	return lipgloss.NewStyle().MaxHeight(height).Render(input)
 }
 
+func flipLines(input string) string {
+	lines := strings.Split(input, "\n")
+	slices.Reverse(lines)
+	return strings.Join(lines, "\n")
+}
+
+func limitHeightFromBottom(input string, height int) string {
+	return flipLines(limitHeight(flipLines(input), height))
+}
+
 func joinViewsVertically(strs ...string) string {
 	toJoin := slices.DeleteFunc(strs, func(s string) bool { return s == "" })
 	return lipgloss.JoinVertical(
@@ -216,37 +198,76 @@ func joinViewsVertically(strs ...string) string {
 	)
 }
 
-func (m ComponentList) viewWithComponentRenderer(renderer func(*con.Component) string) string {
-	renderedSpaceUpperBound := m.focusedComponentPosition
-	renderedSpaceLowerBound := renderedSpaceUpperBound
-	joinedViews := ""
+type direction bool
 
-	components := m.getAlternatingComponents(m.focusedIndex)
-	for i, component := range components {
-		if component == nil {
-			continue
-		}
-		item := renderer(component)
+const (
+	ABOVE = true
+	BELOW = false
+)
 
-		if i == 0 {
-			joinedViews = item
-			renderedSpaceLowerBound += lipgloss.Height(item)
-		} else if (i % 2) == 0 {
-			joinedViews = joinViewsVertically(
-				limitHeight(item, renderedSpaceUpperBound),
-				joinedViews,
-			)
-			renderedSpaceUpperBound -= lipgloss.Height(item)
-		} else {
-			joinedViews = joinViewsVertically(
-				joinedViews,
-				limitHeight(item, m.size.Height-renderedSpaceLowerBound),
-			)
-			renderedSpaceLowerBound += lipgloss.Height(item)
-		}
+type ComponentToRender struct {
+	component        *con.Component
+	relativePosition direction
+}
 
-		if renderedSpaceLowerBound >= m.size.Height && renderedSpaceUpperBound <= 0 {
+func (m ComponentList) getComponentsToBeRendered(focusIdx int) []ComponentToRender {
+	components := m.GetComponents()
+	output := []ComponentToRender{}
+	if len(components) < 1 {
+		return output
+	}
+	above := []*con.Component{}
+	below := []*con.Component{}
+	focusIdx = max(0, min(focusIdx, len(components)-1))
+	if focusIdx >= 1 { // as long as there are components before the focused one in the components list
+		above = append(above, components[0:focusIdx]...)
+		slices.Reverse(above)
+	}
+	if focusIdx < len(components)-1 { // as long as there are components after the focused one in the components list
+		below = append(below, components[focusIdx+1:]...)
+	}
+
+	idx := 0
+	for {
+		if idx >= len(above) && idx >= len(below) {
 			break
+		}
+		if idx < len(above) {
+			output = append(output, ComponentToRender{
+				component:        above[idx],
+				relativePosition: ABOVE,
+			})
+		}
+		if idx < len(below) {
+			output = append(output, ComponentToRender{
+				component:        below[idx],
+				relativePosition: BELOW,
+			})
+		}
+		idx++
+	}
+
+	return output
+}
+
+func (m ComponentList) viewWithComponentRenderer(renderer func(*con.Component) string) string {
+	joinedViews := renderer(m.GetFocusedComponent()) // This string holds the renderings of each component as the list is built out from the center
+
+	toRender := m.getComponentsToBeRendered(m.focusedIndex)
+	for _, comp := range toRender {
+		item := renderer(comp.component)
+		itemHeightLimit := m.size.Height - lipgloss.Height(joinedViews)
+		switch comp.relativePosition {
+		case ABOVE:
+			joinedViews = joinViewsVertically(
+				limitHeightFromBottom(item, itemHeightLimit),
+				joinedViews,
+			)
+		case BELOW:
+			joinedViews = joinViewsVertically(
+				joinedViews,
+				limitHeight(item, itemHeightLimit),
+			)
 		}
 	}
 
@@ -254,9 +275,12 @@ func (m ComponentList) viewWithComponentRenderer(renderer func(*con.Component) s
 }
 
 func (m ComponentList) View() string {
-	return m.viewWithComponentRenderer(
-		func(c *con.Component) string {
-			return m.renderForStyle(c)
-		},
+	return limitHeight(
+		m.viewWithComponentRenderer(
+			func(c *con.Component) string {
+				return m.renderForStyle(c)
+			},
+		),
+		m.size.Height,
 	)
 }

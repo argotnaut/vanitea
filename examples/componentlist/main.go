@@ -85,17 +85,17 @@ func (m colorBlock) View() string {
 
 func main() {
 	colors := []colorBlock{
-		getColorBlock("1 Acid green", "#B0BF1A"),
-		getColorBlock("2 Antique bronze", "#665D1E"),
-		getColorBlock("3 Blue bell", "#A2A2D0"),
-		getColorBlock("4 Cordovan", "#893F45"),
-		getColorBlock("5 Cambridge blue", "#A3C1AD"),
-		getColorBlock("6 Cameo pink", "#EFBBCC"),
-		getColorBlock("7 Catawba", "#703642"),
-		getColorBlock("8 Cerise", "#DE3163"),
-		getColorBlock("9 Charcoal", "#36454F"),
-		getColorBlock("10 Chili red", "#E23D28"),
-		getColorBlock("11 Dark cyan", "#008B8B"),
+		getColorBlock("1", "#ff0000"),
+		getColorBlock("2", "#af3434"),
+		getColorBlock("3", "#ffa600"),
+		getColorBlock("4", "#e69e19"),
+		getColorBlock("5", "#fffb00"),
+		getColorBlock("6", "#fffc37"),
+		getColorBlock("7", "#1aff00"),
+		getColorBlock("8", "#31c720"),
+		getColorBlock("9", "#0080ff"),
+		getColorBlock("10", "#266baf"),
+		getColorBlock("11", "#4800ff"),
 	}
 	var components []*con.Component
 	for _, color := range colors {
