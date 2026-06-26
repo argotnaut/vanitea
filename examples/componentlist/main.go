@@ -116,7 +116,7 @@ func main() {
 	}
 
 	// componentList := cl.NewComponentList(components)
-	componentList := cl.NewSelectableList(components)
+	componentList := cl.NewSelectableList(components, nil)
 
 	_, err := tea.NewProgram(
 		componentList,

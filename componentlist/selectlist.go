@@ -3,8 +3,9 @@ package vanitea
 import (
 	"slices"
 
-	"github.com/argotnaut/vanitea/colors"
 	con "github.com/argotnaut/vanitea/container"
+
+	"github.com/argotnaut/vanitea/colors"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -43,41 +44,35 @@ func DefaultKeyMap() KeyMap {
 	}
 }
 
+type GetSelectionVisualFunc func(SelectableList, *con.Component) string
+
 type SelectableList struct {
 	ComponentList
-	Selected         []*con.Component
-	KeyMap           KeyMap
-	SelectedString   string
-	DeselectedString string
+	Selected           []*con.Component
+	KeyMap             KeyMap
+	getSelectionVisual GetSelectionVisualFunc
 }
 
-func NewSelectableList(components []*con.Component) SelectableList {
+func NewSelectableList(components []*con.Component, getSelectionVisual GetSelectionVisualFunc) SelectableList {
 	darkGreyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colors.SELECTLIST_DESELECTED))
 	lavenderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colors.SELECTLIST_SELECTED))
-	return SelectableList{
-		ComponentList:    *NewComponentList(components),
-		KeyMap:           DefaultKeyMap(),
-		DeselectedString: darkGreyStyle.Render("[") + " " + darkGreyStyle.Render("]"),
-		SelectedString:   darkGreyStyle.Render("[") + lavenderStyle.Render("✓") + darkGreyStyle.Render("]"),
+
+	if getSelectionVisual == nil {
+		getSelectionVisual = func(m SelectableList, comp *con.Component) string {
+			checkboxString := darkGreyStyle.Render("[") + " " + darkGreyStyle.Render("]")
+			padding := 1
+			if slices.ContainsFunc(m.Selected, func(c *con.Component) bool { return c == comp }) {
+				checkboxString = darkGreyStyle.Render("[") + lavenderStyle.Render("✓") + darkGreyStyle.Render("]")
+				padding = 2
+			}
+			return lipgloss.NewStyle().Padding(padding).Render(checkboxString)
+		}
 	}
-}
-
-func (m SelectableList) GetSelectedString() string {
-	return m.SelectedString
-}
-
-func (m SelectableList) GetDeselectedString() string {
-	return m.SelectedString
-}
-
-func (m SelectableList) SetSelectedString(input string) SelectableList {
-	m.SelectedString = input
-	return m
-}
-
-func (m SelectableList) SetDeselectedString(input string) SelectableList {
-	m.DeselectedString = input
-	return m
+	return SelectableList{
+		ComponentList:      *NewComponentList(components),
+		KeyMap:             DefaultKeyMap(),
+		getSelectionVisual: getSelectionVisual,
+	}
 }
 
 func (m SelectableList) IsSelected(component *con.Component) bool {
@@ -136,23 +131,13 @@ func (m SelectableList) GetSelected() []*con.Component {
 	return m.Selected
 }
 
-func (m SelectableList) getSelectionVisual(comp *con.Component) string {
-	checkboxString := m.DeselectedString
-	padding := 1
-	if slices.ContainsFunc(m.Selected, func(c *con.Component) bool { return c == comp }) {
-		checkboxString = m.SelectedString
-		padding = 2
-	}
-	return lipgloss.NewStyle().Padding(padding).Render(checkboxString)
-}
-
 func (m SelectableList) resizeComponentModelForStyleAndSelection(
 	component *con.Component,
 	size tea.WindowSizeMsg,
 ) tea.Cmd {
 	newSizeMsg := tea.WindowSizeMsg{
 		Height: size.Height,
-		Width:  size.Width - lipgloss.Width(m.getSelectionVisual(component)),
+		Width:  size.Width - lipgloss.Width(m.getSelectionVisual(m, component)),
 	}
 	return m.resizeComponentModelForStyle(
 		component,
@@ -236,7 +221,7 @@ func (m SelectableList) View() string {
 			}
 			return lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				m.getSelectionVisual(c),
+				m.getSelectionVisual(m, c),
 				baseView,
 			)
 		},
